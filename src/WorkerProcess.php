@@ -159,14 +159,14 @@ class WorkerProcess
 
         if ($this->restartAgainAt) {
             $this->restartAgainAt = ! $this->process->isRunning()
-                            ? Chronos::now()->addMinute()
+                            ? Chronos::now()->addMinutes(1)
                             : null;
 
             if (! $this->process->isRunning()) {
                 event(new UnableToLaunchProcess($this));
             }
         } else {
-            $this->restartAgainAt = Chronos::now()->addSecond();
+            $this->restartAgainAt = Chronos::now()->addSeconds(1);
         }
     }
 
@@ -178,7 +178,7 @@ class WorkerProcess
     public function coolingDown()
     {
         return isset($this->restartAgainAt) &&
-               Chronos::now()->lt($this->restartAgainAt);
+               Chronos::now()->lessThan($this->restartAgainAt);
     }
 
     /**

@@ -162,7 +162,8 @@ class Supervisor implements Pausable, Restartable, Terminable
         foreach ($balance as $queue => $scale) {
             $this->processPools->first(function ($pool) use ($queue) {
                 return $pool->queue() === $queue;
-            }, new class {
+            }, new class
+            {
                 public function __call($method, $arguments)
                 {
                 }
@@ -271,6 +272,7 @@ class Supervisor implements Pausable, Restartable, Terminable
      * Ensure no other supervisors are running with the same name.
      *
      * @return void
+     *
      * @throws \Exception
      */
     public function ensureNoDuplicateSupervisors()
@@ -334,7 +336,7 @@ class Supervisor implements Pausable, Restartable, Terminable
         $this->lastAutoScaled = $this->lastAutoScaled ?:
                     Chronos::now()->subSeconds($this->autoScaleCooldown + 1);
 
-        if (Chronos::now()->subSeconds($this->autoScaleCooldown)->gte($this->lastAutoScaled)) {
+        if (Chronos::now()->subSeconds($this->autoScaleCooldown)->greaterThanOrEquals($this->lastAutoScaled)) {
             $this->lastAutoScaled = Chronos::now();
 
             app(AutoScaler::class)->scale($this);
