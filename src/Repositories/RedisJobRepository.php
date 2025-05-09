@@ -156,11 +156,12 @@ class RedisJobRepository implements JobRepository
      * Get a chunk of completed jobs.
      *
      * @param  string|null  $afterIndex
+     * @param  string|null  $intersect
      * @return \Illuminate\Support\Collection
      */
-    public function getCompleted($afterIndex = null)
+    public function getCompleted($afterIndex = null, string|null $intersect = null)
     {
-        return $this->getJobsByType('completed_jobs', $afterIndex);
+        return $this->getJobsByType('completed_jobs', $afterIndex, $intersect);
     }
 
     /**
@@ -218,15 +219,24 @@ class RedisJobRepository implements JobRepository
      *
      * @param  string  $type
      * @param  string  $afterIndex
+     * @param  string|null  $intersect
      * @return \Illuminate\Support\Collection
      */
-    protected function getJobsByType($type, $afterIndex)
+    protected function getJobsByType($type, $afterIndex, string|null $intersect = null)
     {
         $afterIndex = $afterIndex === null ? -1 : $afterIndex;
 
-        return $this->getJobs($this->connection()->zrange(
-            $type, $afterIndex + 1, $afterIndex + 50
-        ), $afterIndex + 1);
+        if (is_null($intersect)) {
+            $ids = $this->connection()->zrange(
+                $type, $afterIndex + 1, $afterIndex + 50
+            );
+        } else {
+            $ids = $this->sortedSetIntersection(
+                $type, $intersect, $afterIndex + 1, $afterIndex + 50
+            );
+        }
+
+        return $this->getJobs($ids, $afterIndex + 1);
     }
 
     /**
@@ -496,8 +506,8 @@ class RedisJobRepository implements JobRepository
     {
         return collect($retries)->map(function ($retry) use ($payload, $failed) {
             return $retry['id'] === $payload->id()
-                    ? Arr::set($retry, 'status', $failed ? 'failed' : 'completed')
-                    : $retry;
+                ? Arr::set($retry, 'status', $failed ? 'failed' : 'completed')
+                : $retry;
         })->all();
     }
 
@@ -708,6 +718,30 @@ class RedisJobRepository implements JobRepository
             'pending_jobs',
             config('horizon.prefix'),
             $queue
+        );
+    }
+
+    /**
+     * Get only keys from set B that exist in set A.
+     *
+     * @param  string  $sortedSet
+     * @param  string  $sortedSetIntersect
+     * @return array
+     */
+    public function sortedSetIntersection(
+        string $sortedSet,
+        string $sortedSetIntersect,
+        int $startIndex,
+        int $stopIndex,
+    )
+    {
+        return $this->connection()->eval(
+            LuaScripts::sortedSetIntersection(),
+            2,
+            $sortedSet,
+            $sortedSetIntersect,
+            $startIndex,
+            $stopIndex,
         );
     }
 

@@ -13,14 +13,14 @@ class FailedJobsController extends Controller
      *
      * @var \Laravel\Horizon\Contracts\JobRepository
      */
-    public $jobs;
+    protected $jobs;
 
     /**
      * The tag repository implementation.
      *
      * @var \Laravel\Horizon\Contracts\TagRepository
      */
-    public $tags;
+    protected $tags;
 
     /**
      * Create a new controller instance.
@@ -46,12 +46,12 @@ class FailedJobsController extends Controller
     public function index(Request $request)
     {
         $jobs = ! $request->query('tag')
-                ? $this->paginate($request)
-                : $this->paginateByTag($request, $request->query('tag'));
+            ? $this->paginate($request)
+            : $this->paginateByTag($request, $request->query('tag'));
 
         $total = $request->query('tag')
-                ? $this->tags->count('failed:'.$request->query('tag'))
-                : $this->jobs->countFailed();
+            ? $this->tags->count($request->query('tag'))
+            : $this->jobs->countFailed();
 
         return [
             'jobs' => $jobs,
@@ -82,7 +82,7 @@ class FailedJobsController extends Controller
     protected function paginateByTag(Request $request, $tag)
     {
         $jobIds = $this->tags->paginate(
-            'failed:'.$tag, ($request->query('starting_at') ?: -1) + 1, 50
+            $tag, ($request->query('starting_at') ?: -1) + 1, 50
         );
 
         $startingAt = $request->query('starting_at', 0);

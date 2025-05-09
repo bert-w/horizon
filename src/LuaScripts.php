@@ -17,9 +17,9 @@ class LuaScripts
     {
         return <<<'LUA'
             redis.call('hsetnx', KEYS[1], 'throughput', 0)
-            
+
             redis.call('sadd', KEYS[2], KEYS[1])
-            
+
             local hash = redis.call('hmget', KEYS[1], 'throughput', 'runtime')
 
             local throughput = hash[1] + 1
@@ -48,10 +48,10 @@ LUA;
     public static function purge()
     {
         return <<<'LUA'
-            
+
             local count = 0
             local cursor = 0
-            
+
             repeat
                 -- Iterate over the recent jobs sorted set
                 local scanner = redis.call('zscan', KEYS[1], cursor)
@@ -69,11 +69,41 @@ LUA;
                         redis.call('zrem', KEYS[2], jobid)
                         redis.call('del', hashkey)
                         count = count + 1
-                    end           
+                    end
                 end
             until cursor == '0'
 
             return count
+LUA;
+    }
+
+    /**
+     * Get only keys from set A that exist in set B.
+     *
+     * KEYS[1] - The name of a sorted set A
+     * KEYS[2] - The name of a sorted set B
+     * ARGV[1] - Start index for pagination
+     * ARGV[2] - Stop index for pagination
+     *
+     * @return string
+     */
+    public static function sortedSetIntersection()
+    {
+        return <<<'LUA'
+            local lookup = {}
+            local result = {}
+
+            for _, v in ipairs(redis.call('ZRANGE', KEYS[2], 0, -1)) do
+              lookup[v] = true
+            end
+
+            for _, v in ipairs(redis.call('ZRANGE', KEYS[1], tonumber(ARGV[1]), tonumber(ARGV[2]))) do
+              if lookup[v] then
+                table.insert(result, v)
+              end
+            end
+
+            return result
 LUA;
     }
 }
