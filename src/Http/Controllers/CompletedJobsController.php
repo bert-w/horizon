@@ -4,6 +4,7 @@ namespace Laravel\Horizon\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Laravel\Horizon\Contracts\JobRepository;
+use Laravel\Horizon\Contracts\TagRepository;
 
 class CompletedJobsController extends Controller
 {
@@ -12,19 +13,28 @@ class CompletedJobsController extends Controller
      *
      * @var \Laravel\Horizon\Contracts\JobRepository
      */
-    public $jobs;
+    protected $jobs;
+
+    /**
+     * The tag repository implementation.
+     *
+     * @var \Laravel\Horizon\Contracts\TagRepository
+     */
+    protected $tags;
 
     /**
      * Create a new controller instance.
      *
      * @param  \Laravel\Horizon\Contracts\JobRepository  $jobs
+     * @param  \Laravel\Horizon\Contracts\TagRepository  $tags
      * @return void
      */
-    public function __construct(JobRepository $jobs)
+    public function __construct(JobRepository $jobs, TagRepository $tags)
     {
         parent::__construct();
 
         $this->jobs = $jobs;
+        $this->tags = $tags;
     }
 
     /**
@@ -35,15 +45,20 @@ class CompletedJobsController extends Controller
      */
     public function index(Request $request)
     {
-        $jobs = $this->jobs->getCompleted($request->query('starting_at', -1))->map(function ($job) {
-            $job->payload = json_decode($job->payload);
+        $jobs = $this->jobs->getCompleted(
+            $request->query('starting_at') ?: -1,
+            $request->query('tag'),
+        )->map(function ($job) {
+            return $this->decode($job);
+        });
 
-            return $job;
-        })->values();
+        $total = $request->query('tag')
+            ? $this->tags->count($request->query('tag'))
+            : $this->jobs->countCompleted();
 
         return [
             'jobs' => $jobs,
-            'total' => $this->jobs->countCompleted(),
+            'total' => $total,
         ];
     }
 

@@ -44,7 +44,6 @@ trait EventMap
 
         Events\JobFailed::class => [
             Listeners\MarkJobAsFailed::class,
-            Listeners\StoreTagsForFailedJob::class,
         ],
 
         Events\MasterSupervisorLooped::class => [
