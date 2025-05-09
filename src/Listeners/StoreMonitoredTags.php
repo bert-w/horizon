@@ -33,7 +33,15 @@ class StoreMonitoredTags
      */
     public function handle(JobPushed $event)
     {
-        $monitoring = $this->tags->monitored($event->payload->tags());
+        $tags = $event->payload->tags();
+
+        if (config('horizon.monitor_all_tags')) {
+            $this->tags->add($event->payload->id(), $tags);
+
+            return;
+        }
+
+        $monitoring = $this->tags->monitored($tags);
 
         if (! empty($monitoring)) {
             $this->tags->add($event->payload->id(), $monitoring);
