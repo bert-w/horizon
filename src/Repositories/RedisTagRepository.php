@@ -2,6 +2,7 @@
 
 namespace Laravel\Horizon\Repositories;
 
+use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Redis\Factory as RedisFactory;
 use Laravel\Horizon\Contracts\TagRepository;
 
@@ -23,6 +24,16 @@ class RedisTagRepository implements TagRepository
     public function __construct(RedisFactory $redis)
     {
         $this->redis = $redis;
+    }
+
+    /**
+     * Get the trim frequency.
+     *
+     * @return int
+     */
+    public function trimFrequency()
+    {
+        return max(...array_values(config('horizon.trim'))) ?? 2880;
     }
 
     /**
@@ -99,6 +110,29 @@ class RedisTagRepository implements TagRepository
                 $pipe->zadd($tag, str_replace(',', '.', microtime(true)), $id);
 
                 $pipe->expire($tag, $minutes * 60);
+            }
+        });
+    }
+
+    /**
+     * Trim the tags that are actively being monitored.
+     * Note: non-monitored tags expire automatically.
+     *
+     * @return void
+     */
+    public function trim()
+    {
+        $tags = $this->monitoring();
+
+        $this->connection()->pipeline(function ($pipe) use ($tags) {
+            $timestamp = CarbonImmutable::now()->subMinutes($this->trimFrequency())->getTimestamp() * -1;
+
+            foreach ($tags as $tag) {
+                $pipe->zremrangebyscore(
+                    $tag,
+                    $timestamp,
+                    '+inf'
+                );
             }
         });
     }
