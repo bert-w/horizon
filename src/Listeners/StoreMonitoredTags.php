@@ -45,12 +45,9 @@ class StoreMonitoredTags
 
         if (! empty($monitoring)) {
             $this->tags->addTemporary(
-                max(
-                    config('horizon.trim.pending', 0),
-                    config('horizon.trim.completed', 0),
-                    config('horizon.trim.failed', 0)
-                ) ?? 2880,
-                $event->payload->id(), $monitoring,
+                $this->tags->trimFrequency() ?? 2880,
+                $event->payload->id(),
+                $monitoring,
             );
         }
     }

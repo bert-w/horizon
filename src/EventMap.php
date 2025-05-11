@@ -50,6 +50,7 @@ trait EventMap
             Listeners\TrimRecentJobs::class,
             Listeners\TrimFailedJobs::class,
             Listeners\TrimMonitoredJobs::class,
+            Listeners\TrimTags::class,
             Listeners\ExpireSupervisors::class,
             Listeners\MonitorMasterSupervisorMemory::class,
         ],

@@ -5,6 +5,13 @@ namespace Laravel\Horizon\Contracts;
 interface TagRepository
 {
     /**
+     * Get the trim frequency.
+     *
+     * @return int
+     */
+    public function trimFrequency();
+
+    /**
      * Get the currently monitored tags.
      *
      * @return array
@@ -53,6 +60,14 @@ interface TagRepository
      * @return void
      */
     public function addTemporary($minutes, $id, array $tags);
+
+    /**
+     * Trim the tags that are actively being monitored.
+     * Note: non-monitored tags expire automatically.
+     *
+     * @return void
+     */
+    public function trim();
 
     /**
      * Get the number of jobs matching a given tag.
