@@ -15,9 +15,7 @@ class MonitoringControllerTest extends AbstractControllerTest
 
         $tags->shouldReceive('monitoring')->andReturn(['first', 'second']);
         $tags->shouldReceive('count')->with('first')->andReturn(1);
-        $tags->shouldReceive('count')->with('failed:first')->andReturn(1);
         $tags->shouldReceive('count')->with('second')->andReturn(2);
-        $tags->shouldReceive('count')->with('failed:second')->andReturn(2);
 
         $this->app->instance(TagRepository::class, $tags);
 
@@ -25,8 +23,8 @@ class MonitoringControllerTest extends AbstractControllerTest
                     ->get('/horizon/api/monitoring');
 
         $response->assertJson([
-            ['tag' => 'first', 'count' => 2],
-            ['tag' => 'second', 'count' => 4],
+            ['tag' => 'first', 'count' => 1],
+            ['tag' => 'second', 'count' => 2],
         ]);
     }
 
