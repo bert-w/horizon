@@ -26,6 +26,7 @@ class StoreTagsTest extends IntegrationTest
 
         $tagRepository = m::mock(TagRepository::class);
 
+        $tagRepository->shouldReceive('monitored')->once()->with(['testtag'])->andReturn(['testtag']);
         $tagRepository->shouldReceive('addTemporary')->once()->with(240, '1', ['testtag'])->andReturn([]);
 
         $this->instance(TagRepository::class, $tagRepository);

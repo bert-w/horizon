@@ -30,7 +30,7 @@ class FailedJobTest extends IntegrationTest
     {
         $id = Queue::push(new Jobs\FailingJob);
         $this->work();
-        $ids = resolve(TagRepository::class)->jobs('failed:first');
+        $ids = resolve(TagRepository::class)->jobs('first');
         $this->assertEquals([$id], $ids);
     }
 
@@ -38,7 +38,7 @@ class FailedJobTest extends IntegrationTest
     {
         Queue::push(new Jobs\FailingJob);
         $this->work();
-        $ttl = Redis::connection('horizon')->pttl('failed:first');
+        $ttl = Redis::connection('horizon')->pttl('first');
         $this->assertNotNull($ttl);
         $this->assertGreaterThan(0, $ttl);
     }
