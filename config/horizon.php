@@ -140,18 +140,31 @@ return [
 
     'fast_termination' => false,
 
-    /*
-    |--------------------------------------------------------------------------
-    | Monitor Tags
-    |--------------------------------------------------------------------------
-    |
-    | By default, Horizon will keep track of all job tags. If you want to change
-    | this behavior, you can optionally set an array with string patterns like:
+    'tags' => [
+        /*
+        |--------------------------------------------------------------------------
+        | Monitor
+        |--------------------------------------------------------------------------
+        |
+        | By default, Horizon will keep track of all job tags. If you want to change
+        | this behavior, you can optionally set an array with string patterns like:
+        |
+        | ['sometagprefix:*']
+        |
+        */
+        'monitor' => true,
 
-    | ['sometagprefix:*']
-    |
-    */
-    'monitor_tags' => true,
+        /*
+        |--------------------------------------------------------------------------
+        | Time-To-Live (TTL)
+        |--------------------------------------------------------------------------
+        |
+        | How long (in minutes) job tags should be kept. If `null`, the maximum
+        | of the `horizon.trim` configuration will be used instead.
+        |
+        */
+        'ttl' => null,
+    ],
 
     /*
     |--------------------------------------------------------------------------

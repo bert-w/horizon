@@ -93,17 +93,74 @@ LUA;
             local lookup = {}
             local result = {}
 
-            for _, v in ipairs(redis.call('ZRANGE', KEYS[2], 0, -1)) do
+            for _, v in ipairs(redis.call('zrange', KEYS[2], 0, -1)) do
               lookup[v] = true
             end
 
-            for _, v in ipairs(redis.call('ZRANGE', KEYS[1], tonumber(ARGV[1]), tonumber(ARGV[2]))) do
+            for _, v in ipairs(redis.call('zrange', KEYS[1], tonumber(ARGV[1]), tonumber(ARGV[2]))) do
               if lookup[v] then
                 table.insert(result, v)
               end
             end
 
             return result
+LUA;
+    }
+
+    /**
+     * Get the count for items of set A that exist in set B.
+     *
+     * KEYS[1] - The name of a sorted set A
+     * KEYS[2] - The name of a sorted set B
+     * ARGV[1] - Min score of set A
+     * ARGV[2] - Max score of set A
+     *
+     * @return string
+     */
+    public static function sortedSetIntersectionCount()
+    {
+        return <<<'LUA'
+            local zsetA = redis.call('zrangebyscore', KEYS[1], ARGV[1], ARGV[2])
+            local count = 0
+
+            for i = 1, #zsetA do
+                if redis.call('zscore', KEYS[2], zsetA[i]) then
+                    count = count + 1
+                end
+            end
+
+            return count
+LUA;
+    }
+
+    /**
+     * Prune all zsets by score.
+     *
+     * ARGV[1] - Min score
+     * ARGV[1] - Max score
+     *
+     * @return string
+     */
+    public static function pruneSortedSetsByScore()
+    {
+        return <<<'LUA'
+            local cursor = '0'
+            local min = ARGV[1]
+            local max = ARGV[2]
+
+            repeat
+                local result = redis.call('scan', cursor)
+                cursor = result[1]
+                local keys = result[2]
+
+                for i, key in ipairs(keys) do
+                    if redis.call('type', key).ok == 'zset' then
+                        redis.call('zremrangebyscore', key, min, max)
+                    end
+                end
+            until cursor == '0'
+
+            return true
 LUA;
     }
 }

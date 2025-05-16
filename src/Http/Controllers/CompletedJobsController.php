@@ -47,18 +47,14 @@ class CompletedJobsController extends Controller
     {
         $jobs = $this->jobs->getCompleted(
             $request->query('starting_at') ?: -1,
-            $request->query('tag'),
+            $tag = $request->query('tag'),
         )->map(function ($job) {
             return $this->decode($job);
         });
 
-        $total = $request->query('tag')
-            ? $this->tags->count($request->query('tag'))
-            : $this->jobs->countCompleted();
-
         return [
             'jobs' => $jobs,
-            'total' => $total,
+            'total' => $this->jobs->countCompleted($tag),
         ];
     }
 
