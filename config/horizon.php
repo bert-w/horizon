@@ -157,15 +157,16 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Monitor All Tags
+    | Monitor Tags
     |--------------------------------------------------------------------------
     |
-    | When this option is enabled, Horizon will keep track of all job tags
-    | automatically. If you then decide to monitor a specific tag at a
-    | later time, the matching data will be immediately available.
+    | By default, Horizon will keep track of all job tags. If you want to change
+    | this behavior, you can optionally set an array with string patterns like:
+
+    | ['sometagprefix:*']
     |
     */
-    'monitor_all_tags' => false,
+    'monitor_tags' => true,
 
     /*
     |--------------------------------------------------------------------------
