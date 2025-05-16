@@ -108,6 +108,9 @@ class Horizon
                 'prefix' => config('horizon.prefix') ?: 'horizon:',
             ]),
         ])]);
+
+        $config['options']['prefix'] .= 'tags:';
+        config(['database.redis.horizon_tags' => $config]);
     }
 
     /**

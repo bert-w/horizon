@@ -19,12 +19,12 @@ class QueueProcessingTest extends IntegrationTest
         $this->work();
     }
 
-    public function test_completed_jobs_are_not_normally_stored_in_completed_database()
+    public function test_completed_job_tags_are_stored()
     {
         Queue::push(new Jobs\BasicJob);
         $this->work();
-        $this->assertSame(0, $this->monitoredJobs('first'));
-        $this->assertSame(0, $this->monitoredJobs('second'));
+        $this->assertSame(1, $this->monitoredJobs('first'));
+        $this->assertSame(1, $this->monitoredJobs('second'));
     }
 
     public function test_pending_jobs_are_stored_in_pending_job_database()

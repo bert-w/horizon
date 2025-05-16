@@ -13,14 +13,14 @@ class FailedJobsController extends Controller
      *
      * @var \Laravel\Horizon\Contracts\JobRepository
      */
-    public $jobs;
+    protected $jobs;
 
     /**
      * The tag repository implementation.
      *
      * @var \Laravel\Horizon\Contracts\TagRepository
      */
-    public $tags;
+    protected $tags;
 
     /**
      * Create a new controller instance.
@@ -45,52 +45,19 @@ class FailedJobsController extends Controller
      */
     public function index(Request $request)
     {
-        $jobs = ! $request->query('tag')
-                ? $this->paginate($request)
-                : $this->paginateByTag($request, $request->query('tag'));
-
-        $total = $request->query('tag')
-                ? $this->tags->count('failed:'.$request->query('tag'))
-                : $this->jobs->countFailed();
+        $jobs = $this->jobs->getFailed(
+            $request->query('starting_at') ?: -1,
+            $tag = $request->query('tag'),
+        )->map(function ($job) {
+            return $this->decode($job);
+        });
 
         return [
             'jobs' => $jobs,
-            'total' => $total,
+            'total' => $this->jobs->countFailed($tag),
         ];
     }
 
-    /**
-     * Paginate the failed jobs for the request.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Support\Collection
-     */
-    protected function paginate(Request $request)
-    {
-        return $this->jobs->getFailed($request->query('starting_at') ?: -1)->map(function ($job) {
-            return $this->decode($job);
-        });
-    }
-
-    /**
-     * Paginate the failed jobs for the request and tag.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  string  $tag
-     * @return \Illuminate\Support\Collection
-     */
-    protected function paginateByTag(Request $request, $tag)
-    {
-        $jobIds = $this->tags->paginate(
-            'failed:'.$tag, ($request->query('starting_at') ?: -1) + 1, 50
-        );
-
-        $startingAt = $request->query('starting_at', 0);
-
-        return $this->jobs->getJobs($jobIds, $startingAt)->map(function ($job) {
-            return $this->decode($job);
-        });
-    }
 
     /**
      * Get a failed job instance.

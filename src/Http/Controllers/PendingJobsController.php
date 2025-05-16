@@ -35,15 +35,16 @@ class PendingJobsController extends Controller
      */
     public function index(Request $request)
     {
-        $jobs = $this->jobs->getPending($request->query('starting_at', -1))->map(function ($job) {
-            $job->payload = json_decode($job->payload);
-
-            return $job;
-        })->values();
+        $jobs = $this->jobs->getPending(
+            $request->query('starting_at') ?: -1,
+            $tag = $request->query('tag'),
+        )->map(function ($job) {
+            return $this->decode($job);
+        });
 
         return [
             'jobs' => $jobs,
-            'total' => $this->jobs->countPending(),
+            'total' => $this->jobs->countPending($tag),
         ];
     }
 

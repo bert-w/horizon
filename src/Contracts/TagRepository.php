@@ -5,6 +5,13 @@ namespace Laravel\Horizon\Contracts;
 interface TagRepository
 {
     /**
+     * Get the Time-To-Live (TTL) in minutes for the tags.
+     *
+     * @return int
+     */
+    public function ttl();
+
+    /**
      * Get the currently monitored tags.
      *
      * @return array
@@ -53,6 +60,13 @@ interface TagRepository
      * @return void
      */
     public function addTemporary($minutes, $id, array $tags);
+
+    /**
+     * Prune the tags that have expired.
+     *
+     * @return bool
+     */
+    public function prune();
 
     /**
      * Get the number of jobs matching a given tag.
