@@ -21,13 +21,13 @@ class StoreTagsTest extends IntegrationTest
     {
         config()->set('horizon.trim.pending', 120);
         config()->set('horizon.trim.completed', 120);
-        // Tags should be stored for the longest time defined in the config, so we define 240 here.
+        // Tags should be stored for the longest time defined in the config, so we test a different value here.
         config()->set('horizon.trim.failed', 240);
 
         $tagRepository = m::mock(TagRepository::class);
 
-        $tagRepository->shouldReceive('monitored')->once()->with(['testtag'])->andReturn(['testtag']);
         $tagRepository->shouldReceive('addTemporary')->once()->with(240, '1', ['testtag'])->andReturn([]);
+        $tagRepository->shouldReceive('trimFrequency')->once()->andReturn(240);
 
         $this->instance(TagRepository::class, $tagRepository);
 
