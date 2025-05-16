@@ -5,6 +5,7 @@ namespace Laravel\Horizon\Repositories;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Redis\Factory as RedisFactory;
 use Laravel\Horizon\Contracts\TagRepository;
+use Laravel\Horizon\LuaScripts;
 
 class RedisTagRepository implements TagRepository
 {
@@ -27,13 +28,15 @@ class RedisTagRepository implements TagRepository
     }
 
     /**
-     * Get the trim frequency.
+     * Get the Time-To-Live (TTL) in minutes for the tags.
      *
      * @return int
      */
-    public function trimFrequency()
+    public function ttl()
     {
-        return max(...array_values(config('horizon.trim'))) ?? 2880;
+        return config('horizon.tags.ttl')
+            ?? max(...array_values(config('horizon.trim')))
+            ?? 2880;
     }
 
     /**
@@ -115,26 +118,18 @@ class RedisTagRepository implements TagRepository
     }
 
     /**
-     * Trim the tags that are actively being monitored.
-     * Note: non-monitored tags expire automatically.
+     * Prune the tags that have expired.
      *
-     * @return void
+     * @return bool
      */
-    public function trim()
+    public function prune()
     {
-        $tags = $this->monitoring();
-
-        $this->connection()->pipeline(function ($pipe) use ($tags) {
-            $timestamp = CarbonImmutable::now()->subMinutes($this->trimFrequency())->getTimestamp() * -1;
-
-            foreach ($tags as $tag) {
-                $pipe->zremrangebyscore(
-                    $tag,
-                    $timestamp,
-                    '+inf'
-                );
-            }
-        });
+        return $this->connection()->eval(
+            LuaScripts::pruneSortedSetsByScore(),
+            0,
+            '-inf',
+            CarbonImmutable::now()->subMinutes($this->ttl())->getTimestamp(),
+        );
     }
 
     /**
@@ -212,8 +207,8 @@ class RedisTagRepository implements TagRepository
      *
      * @return \Illuminate\Redis\Connections\Connection
      */
-    protected function connection()
+    public function connection()
     {
-        return $this->redis->connection('horizon');
+        return $this->redis->connection('horizon_tags');
     }
 }

@@ -39,26 +39,38 @@ interface JobRepository
     /**
      * Get a chunk of failed jobs.
      *
-     * @param  string  $afterIndex
+     * @param  string|null  $afterIndex
+     * @param  string|null  $intersect
      * @return \Illuminate\Support\Collection
      */
-    public function getFailed($afterIndex = null);
+    public function getFailed(string|null $afterIndex = null, string|null $intersect = null);
 
     /**
      * Get a chunk of pending jobs.
      *
-     * @param  string  $afterIndex
+     * @param  string|null  $afterIndex
+     * @param  string|null  $intersect
      * @return \Illuminate\Support\Collection
      */
-    public function getPending($afterIndex = null);
+    public function getPending(string|null $afterIndex = null, string|null $intersect = null);
 
     /**
      * Get a chunk of completed jobs.
      *
-     * @param  string  $afterIndex
+     * @param  string|null  $afterIndex
+     * @param  string|null  $intersect
      * @return \Illuminate\Support\Collection
      */
-    public function getCompleted($afterIndex = null);
+    public function getCompleted(string|null $afterIndex = null, string|null $intersect = null);
+
+    /**
+     * Get a chunk of silenced jobs.
+     *
+     * @param  string|null  $afterIndex
+     * @param  string|null  $intersect
+     * @return \Illuminate\Support\Collection
+     */
+    public function getSilenced(string|null $afterIndex = null, string|null $intersect = null);
 
     /**
      * Get a chunk of silenced jobs.
@@ -78,23 +90,34 @@ interface JobRepository
     /**
      * Get the count of failed jobs.
      *
+     * @param  string|null  $intersect
      * @return int
      */
-    public function countFailed();
+    public function countFailed(string|null $intersect = null);
 
     /**
      * Get the count of pending jobs.
      *
+     * @param  string|null  $intersect
      * @return int
      */
-    public function countPending();
+    public function countPending(string|null $intersect = null);
 
     /**
      * Get the count of completed jobs.
      *
+     * @param  string|null  $intersect
      * @return int
      */
-    public function countCompleted();
+    public function countCompleted(string|null $intersect = null);
+
+    /**
+     * Get the count of silenced jobs.
+     *
+     * @param  string|null  $intersect
+     * @return int
+     */
+    public function countSilenced(string|null $intersect = null);
 
     /**
      * Get the count of silenced jobs.

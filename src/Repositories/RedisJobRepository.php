@@ -134,22 +134,24 @@ class RedisJobRepository implements JobRepository
      * Get a chunk of failed jobs.
      *
      * @param  string|null  $afterIndex
+     * @param  string|null  $intersect
      * @return \Illuminate\Support\Collection
      */
-    public function getFailed($afterIndex = null)
+    public function getFailed(string|null $afterIndex = null, string|null $intersect = null)
     {
-        return $this->getJobsByType('failed_jobs', $afterIndex);
+        return $this->getJobsByType('failed_jobs', $intersect);
     }
 
     /**
      * Get a chunk of pending jobs.
      *
      * @param  string|null  $afterIndex
+     * @param  string|null  $intersect
      * @return \Illuminate\Support\Collection
      */
-    public function getPending($afterIndex = null)
+    public function getPending(string|null $afterIndex = null, string|null $intersect = null)
     {
-        return $this->getJobsByType('pending_jobs', $afterIndex);
+        return $this->getJobsByType('pending_jobs', $afterIndex, $intersect);
     }
 
     /**
@@ -159,7 +161,7 @@ class RedisJobRepository implements JobRepository
      * @param  string|null  $intersect
      * @return \Illuminate\Support\Collection
      */
-    public function getCompleted($afterIndex = null, string|null $intersect = null)
+    public function getCompleted(string|null $afterIndex = null, string|null $intersect = null)
     {
         return $this->getJobsByType('completed_jobs', $afterIndex, $intersect);
     }
@@ -168,11 +170,12 @@ class RedisJobRepository implements JobRepository
      * Get a chunk of silenced jobs.
      *
      * @param  string|null  $afterIndex
+     * @param  string|null  $intersect
      * @return \Illuminate\Support\Collection
      */
-    public function getSilenced($afterIndex = null)
+    public function getSilenced(string|null $afterIndex = null, string|null $intersect = null)
     {
-        return $this->getJobsByType('silenced_jobs', $afterIndex);
+        return $this->getJobsByType('silenced_jobs', $afterIndex, $intersect);
     }
 
     /**
@@ -188,41 +191,45 @@ class RedisJobRepository implements JobRepository
     /**
      * Get the count of failed jobs.
      *
+     * @param  string|null  $intersect
      * @return int
      */
-    public function countFailed()
+    public function countFailed(string|null $intersect = null)
     {
-        return $this->countJobsByType('failed_jobs');
+        return $this->countJobsByType('failed_jobs', $intersect);
     }
 
     /**
      * Get the count of pending jobs.
      *
+     * @param  string|null  $intersect
      * @return int
      */
-    public function countPending()
+    public function countPending(string|null $intersect = null)
     {
-        return $this->countJobsByType('pending_jobs');
+        return $this->countJobsByType('pending_jobs', $intersect);
     }
 
     /**
      * Get the count of completed jobs.
      *
+     * @param  string|null  $intersect
      * @return int
      */
-    public function countCompleted()
+    public function countCompleted(string|null $intersect = null)
     {
-        return $this->countJobsByType('completed_jobs');
+        return $this->countJobsByType('completed_jobs', $intersect);
     }
 
     /**
      * Get the count of silenced jobs.
      *
+     * @param  string|null  $intersect
      * @return int
      */
-    public function countSilenced()
+    public function countSilenced(string|null $intersect = null)
     {
-        return $this->countJobsByType('silenced_jobs');
+        return $this->countJobsByType('silenced_jobs', $intersect);
     }
 
     /**
@@ -253,7 +260,7 @@ class RedisJobRepository implements JobRepository
             );
         } else {
             $ids = $this->sortedSetIntersection(
-                $type, $intersect, $afterIndex + 1, $afterIndex + 50
+                $type, 'tags:'.$intersect, $afterIndex + 1, $afterIndex + 50
             );
         }
 
@@ -266,9 +273,16 @@ class RedisJobRepository implements JobRepository
      * @param  string  $type
      * @return int
      */
-    protected function countJobsByType($type)
+    protected function countJobsByType($type, string|null $intersect = null)
     {
         $minutes = $this->minutesForType($type);
+
+        if (!is_null($intersect)) {
+            return $this->sortedSetIntersectionCount(
+                $type, 'tags:'.$intersect,
+                '-inf', CarbonImmutable::now()->subMinutes($minutes)->getTimestamp() * -1
+            );
+        }
 
         return $this->connection()->zcount(
             $type, '-inf', CarbonImmutable::now()->subMinutes($minutes)->getTimestamp() * -1
@@ -751,9 +765,11 @@ class RedisJobRepository implements JobRepository
      *
      * @param  string  $sortedSet
      * @param  string  $sortedSetIntersect
+     * @param  int  $startIndex
+     * @param  int  $stopIndex
      * @return array
      */
-    public function sortedSetIntersection(
+    protected function sortedSetIntersection(
         string $sortedSet,
         string $sortedSetIntersect,
         int $startIndex,
@@ -767,6 +783,32 @@ class RedisJobRepository implements JobRepository
             $sortedSetIntersect,
             $startIndex,
             $stopIndex,
+        );
+    }
+
+    /**
+     * Get the count of the intersection of set A and B.
+     *
+     * @param  string  $sortedSet
+     * @param  string  $sortedSetIntersect
+     * @param  string|int  $min
+     * @param  string|int  $max
+     * @return int
+     */
+    protected function sortedSetIntersectionCount(
+        string $sortedSet,
+        string $sortedSetIntersect,
+        string|int $min,
+        string|int $max,
+    )
+    {
+        return $this->connection()->eval(
+            LuaScripts::sortedSetIntersectionCount(),
+            2,
+            $sortedSet,
+            $sortedSetIntersect,
+            $min,
+            $max,
         );
     }
 

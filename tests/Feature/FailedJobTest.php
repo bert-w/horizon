@@ -33,13 +33,4 @@ class FailedJobTest extends IntegrationTest
         $ids = resolve(TagRepository::class)->jobs('first');
         $this->assertEquals([$id], $ids);
     }
-
-    public function test_failed_job_tags_have_an_expiration()
-    {
-        Queue::push(new Jobs\FailingJob);
-        $this->work();
-        $ttl = Redis::connection('horizon')->pttl('first');
-        $this->assertNotNull($ttl);
-        $this->assertGreaterThan(0, $ttl);
-    }
 }

@@ -34,7 +34,7 @@ class StoreMonitoredTags
      */
     public function handle(JobPushed $event)
     {
-        if (!$monitored = config('horizon.monitor_tags', true)) {
+        if (!$monitored = config('horizon.tags.monitor', true)) {
             return;
         }
 
@@ -48,7 +48,7 @@ class StoreMonitoredTags
         }
 
         $this->tags->addTemporary(
-            $this->tags->trimFrequency() ?? 2880,
+            $this->tags->ttl(),
             $event->payload->id(),
             $tags,
         );
