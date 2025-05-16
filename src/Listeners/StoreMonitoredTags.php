@@ -34,7 +34,7 @@ class StoreMonitoredTags
      */
     public function handle(JobPushed $event)
     {
-        if (!$monitored = config('horizon.tags.monitor', true)) {
+        if (! $monitored = config('horizon.tags.monitor', true)) {
             return;
         }
 

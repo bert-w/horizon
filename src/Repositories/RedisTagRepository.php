@@ -207,7 +207,7 @@ class RedisTagRepository implements TagRepository
      *
      * @return \Illuminate\Redis\Connections\Connection
      */
-    public function connection()
+    protected function connection()
     {
         return $this->redis->connection('horizon_tags');
     }

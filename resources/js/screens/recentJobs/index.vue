@@ -79,9 +79,9 @@
 
                 this.$http.get(Horizon.basePath + '/api/jobs/' + this.$route.params.type, {
                     params: {
-                        'starting_at': starting,
-                        'limit': this.perPage,
-                        'tag': this.tagSearchPhrase
+                        starting_at: starting,
+                        limit: this.perPage,
+                        tag: this.tagSearchPhrase
                     }
                 })
                     .then(response => {
