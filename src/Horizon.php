@@ -103,14 +103,14 @@ class Horizon
             throw new Exception("Redis connection [{$connection}] has not been configured.");
         }
 
-        config(['database.redis.horizon' => array_merge($config, [
+        config(['database.redis.horizon' => $merged = array_merge($config, [
             'options' => array_merge($config['options'] ?? [], [
                 'prefix' => config('horizon.prefix') ?: 'horizon:',
             ]),
         ])]);
 
-        $config['options']['prefix'] .= 'tags:';
-        config(['database.redis.horizon_tags' => $config]);
+        $merged['options']['prefix'] .= 'tags:';
+        config(['database.redis.horizon_tags' => $merged]);
     }
 
     /**
