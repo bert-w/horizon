@@ -1,9 +1,4 @@
-# Upgrade Guide
-
-With every upgrade, make sure to publish Horizon's assets:
-
-    php artisan horizon:publish
-    
+# Upgrade Guide 
 
 ## Upgrading To 5.0 From 4.x
 

@@ -1,5 +1,5 @@
 <script type="text/ecmascript-6">
-    import JobRow from './job-row';
+    import JobRow from './job-row.vue';
 
     export default {
         /**
@@ -36,9 +36,9 @@
         },
 
         /**
-         * Clean after the component is destroyed.
+         * Clean after the component is unmounted.
          */
-        destroyed() {
+        unmounted() {
             clearInterval(this.interval);
         },
 
@@ -49,7 +49,7 @@
         watch: {
             '$route'() {
                 this.updatePageTitle();
-                        
+
                 this.page = 1;
 
                 this.loadJobs();
@@ -68,7 +68,7 @@
 
                 this.$http.get(Horizon.basePath + '/api/jobs/' + this.$route.params.type + '?starting_at=' + starting + '&limit=' + this.perPage)
                     .then(response => {
-                        if (!this.$root.autoLoadsNewEntries && refreshing && this.jobs.length && _.first(response.data.jobs).id !== _.first(this.jobs).id) {
+                        if (!this.$root.autoLoadsNewEntries && refreshing && this.jobs.length && response.data.jobs[0]?.id !== this.jobs[0]?.id) {
                             this.hasNewEntries = true;
                         } else {
                             this.jobs = response.data.jobs;
@@ -109,7 +109,7 @@
              */
             previous() {
                 this.loadJobs(
-                    (this.page - 2) * this.perPage
+                    (this.page - 2) * this.perPage - 1
                 );
 
                 this.page -= 1;
@@ -123,7 +123,7 @@
              */
             next() {
                 this.loadJobs(
-                    this.page * this.perPage
+                    this.page * this.perPage - 1
                 );
 
                 this.page += 1;
@@ -137,7 +137,11 @@
             updatePageTitle() {
                 document.title = this.$route.params.type == 'pending'
                         ? 'Horizon - Pending Jobs'
-                        : 'Horizon - Completed Jobs';
+                        : (
+                            this.$route.params.type == 'silenced'
+                                ? 'Horizon - Silenced Jobs'
+                                : 'Horizon - Completed Jobs'
+                        );
             }
         }
     }
@@ -145,10 +149,11 @@
 
 <template>
     <div>
-        <div class="card">
+        <div class="card overflow-hidden">
             <div class="card-header d-flex align-items-center justify-content-between">
-                <h5 v-if="$route.params.type == 'pending'">Pending Jobs</h5>
-                <h5 v-if="$route.params.type == 'completed'">Completed Jobs</h5>
+                <h2 class="h6 m-0" v-if="$route.params.type == 'pending'">Pending Jobs</h2>
+                <h2 class="h6 m-0" v-if="$route.params.type == 'completed'">Completed Jobs</h2>
+                <h2 class="h6 m-0" v-if="$route.params.type == 'silenced'">Silenced Jobs</h2>
             </div>
 
             <div v-if="!ready"
@@ -161,43 +166,40 @@
                 <span>Loading...</span>
             </div>
 
-
             <div v-if="ready && jobs.length == 0"
                  class="d-flex flex-column align-items-center justify-content-center card-bg-secondary p-5 bottom-radius">
                 <span>There aren't any jobs.</span>
             </div>
 
-            <table v-if="ready && jobs.length > 0" class="table table-hover table-sm mb-0">
+            <table v-if="ready && jobs.length > 0" class="table table-hover mb-0">
                 <thead>
-                <tr>
-                    <th>Job</th>
-                    <th v-if="$route.params.type=='pending'" class="text-end">Queued At</th>
-                    <th v-if="$route.params.type=='completed'">Queued At</th>
-                    <th v-if="$route.params.type=='completed'">Completed At</th>
-                    <th v-if="$route.params.type=='completed'" class="text-end">Runtime</th>
-                </tr>
+                    <tr>
+                        <th>Job</th>
+                        <th v-if="$route.params.type=='pending'" class="text-end">Queued</th>
+                        <th v-if="$route.params.type=='completed' || $route.params.type=='silenced'">Queued</th>
+                        <th v-if="$route.params.type=='completed' || $route.params.type=='silenced'">Completed</th>
+                        <th v-if="$route.params.type=='completed' || $route.params.type=='silenced'" class="text-end">Runtime</th>
+                    </tr>
                 </thead>
 
                 <tbody>
                     <tr v-if="hasNewEntries" key="newEntries" class="dontanimate">
                         <td colspan="100" class="text-center card-bg-secondary py-1">
-                            <small><a href="#" class="text-decoration-none" v-on:click.prevent="loadNewEntries" v-if="!loadingNewEntries">Load New
-                                Entries</a></small>
+                            <small><a href="#" v-on:click.prevent="loadNewEntries" v-if="!loadingNewEntries">Load New Entries</a></small>
 
                             <small v-if="loadingNewEntries">Loading...</small>
                         </td>
                     </tr>
 
-                    <tr v-for="job in jobs" :key="job.id" :job="job" is="job-row">
-                    </tr>
+                    <component v-for="job in jobs" :key="job.id" :job="job" is="job-row">
+                    </component>
                 </tbody>
             </table>
 
             <div v-if="ready && jobs.length" class="p-3 d-flex justify-content-between border-top">
-                <button @click="previous" class="btn btn-secondary btn-md" :disabled="page==1">Previous</button>
-                <button @click="next" class="btn btn-secondary btn-md" :disabled="page>=totalPages">Next</button>
+                <button @click="previous" class="btn btn-secondary btn-sm" :disabled="page==1">Previous</button>
+                <button @click="next" class="btn btn-secondary btn-sm" :disabled="page>=totalPages">Next</button>
             </div>
         </div>
-
     </div>
 </template>

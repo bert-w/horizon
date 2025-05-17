@@ -1,12 +1,13 @@
 <template>
     <tr>
         <td>
-            <router-link class="text-decoration-none" :title="job.name" :to="{ name: $route.params.type+'-jobs-preview', params: { jobId: job.id }}">
+            <router-link :title="job.name" :to="{ name: 'job-preview', params: { jobId: job.id, type: $route.params.type }}">
                 {{ jobBaseName(job.name) }}
             </router-link>
 
-            <small class="badge bg-secondary badge-sm" :title="`Delayed for ${delayed}`"
-                   v-if="delayed && (job.status == 'reserved' || job.status == 'pending')">
+            <small class="ms-1 badge bg-secondary badge-sm"
+                :title="`Delayed for ${delayed}`"
+                v-if="delayed && (job.status == 'reserved' || job.status == 'pending')">
                 Delayed
             </small>
 
@@ -21,15 +22,15 @@
             </small>
         </td>
 
-        <td class="table-fit">
+        <td class="table-fit text-muted">
             {{ readableTimestamp(job.payload.pushedAt) }}
         </td>
 
-        <td v-if="$route.params.type=='completed'" class="table-fit">
+        <td v-if="$route.params.type=='completed' || $route.params.type=='silenced'" class="table-fit text-muted">
             {{ readableTimestamp(job.completed_at) }}
         </td>
 
-        <td v-if="$route.params.type=='completed'" class="table-fit">
+        <td v-if="$route.params.type=='completed' || $route.params.type=='silenced'" class="table-fit text-end text-muted">
             <span>{{ job.completed_at ? (job.completed_at - job.reserved_at).toFixed(2)+'s' : '-' }}</span>
         </td>
     </tr>
