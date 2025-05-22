@@ -1,7 +1,7 @@
 <template>
     <tr>
         <td>
-            <router-link class="text-decoration-none" :title="job.name" :to="{ name: $parent.type != 'failed' ? 'completed-jobs-preview' : 'failed-jobs-preview', params: { jobId: job.id }}">
+            <router-link :title="job.name" :to="{ name: 'job-preview', params: { jobId: job.id, type: $parent.type }}">
                 {{ jobBaseName(job.name) }}
             </router-link>
 
@@ -21,19 +21,19 @@
             </small>
         </td>
 
-        <td class="table-fit">
+        <td class="table-fit text-muted">
             {{ readableTimestamp(job.payload.pushedAt) }}
         </td>
 
-        <td v-if="$parent.type == 'jobs'" class="table-fit">
+        <td v-if="$parent.type == 'jobs'" class="table-fit text-muted">
             {{ job.completed_at ? readableTimestamp(job.completed_at) : '-' }}
         </td>
 
-        <td v-if="$parent.type == 'jobs'" class="table-fit">
+        <td v-if="$parent.type == 'jobs'" class="table-fit text-muted">
             <span>{{ job.completed_at ? (job.completed_at - job.reserved_at).toFixed(2)+'s' : '-' }}</span>
         </td>
 
-        <td v-if="$parent.type == 'failed'" class="table-fit">
+        <td v-if="$parent.type == 'failed'" class="table-fit text-muted">
             {{ readableTimestamp(job.failed_at) }}
         </td>
     </tr>

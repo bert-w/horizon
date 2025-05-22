@@ -4,7 +4,9 @@ namespace Laravel\Horizon\Console;
 
 use Illuminate\Console\Command;
 use Laravel\Horizon\Contracts\MasterSupervisorRepository;
+use Symfony\Component\Console\Attribute\AsCommand;
 
+#[AsCommand(name: 'horizon:status')]
 class StatusCommand extends Command
 {
     /**
@@ -25,27 +27,26 @@ class StatusCommand extends Command
      * Execute the console command.
      *
      * @param  \Laravel\Horizon\Contracts\MasterSupervisorRepository  $masterSupervisorRepository
-     * @return void
+     * @return int
      */
     public function handle(MasterSupervisorRepository $masterSupervisorRepository)
     {
-        $this->line($this->currentStatus($masterSupervisorRepository));
-    }
-
-    /**
-     * Get the current status of Horizon.
-     *
-     * @param  \Laravel\Horizon\Contracts\MasterSupervisorRepository  $masterSupervisorRepository
-     * @return string
-     */
-    protected function currentStatus(MasterSupervisorRepository $masterSupervisorRepository)
-    {
         if (! $masters = $masterSupervisorRepository->all()) {
-            return 'Horizon is inactive.';
+            $this->components->error('Horizon is inactive.');
+
+            return 2;
         }
 
-        return collect($masters)->contains(function ($master) {
+        if (collect($masters)->contains(function ($master) {
             return $master->status === 'paused';
-        }) ? 'Horizon is paused.' : 'Horizon is running.';
+        })) {
+            $this->components->warn('Horizon is paused.');
+
+            return 1;
+        }
+
+        $this->components->info('Horizon is running.');
+
+        return 0;
     }
 }

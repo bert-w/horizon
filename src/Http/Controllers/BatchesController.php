@@ -59,13 +59,14 @@ class BatchesController extends Controller
     {
         $batch = $this->batches->find($id);
 
-        $failedJobs = $batch
-            ? app(JobRepository::class)->getJobs($batch->failedJobIds)
-            : null;
+        if ($batch) {
+            $failedJobs = app(JobRepository::class)
+                            ->getJobs($batch->failedJobIds);
+        }
 
         return [
             'batch' => $batch,
-            'failedJobs' => $failedJobs,
+            'failedJobs' => $failedJobs ?? null,
         ];
     }
 
@@ -73,20 +74,22 @@ class BatchesController extends Controller
      * Retry the given batch.
      *
      * @param  string  $id
-     * @return array
+     * @return void
      */
     public function retry($id)
     {
         $batch = $this->batches->find($id);
 
-        app(JobRepository::class)
-                        ->getJobs($batch->failedJobIds)
-                        ->reject(function ($job) {
-                            $payload = json_decode($job->payload);
+        if ($batch) {
+            app(JobRepository::class)
+                            ->getJobs($batch->failedJobIds)
+                            ->reject(function ($job) {
+                                $payload = json_decode($job->payload);
 
-                            return isset($payload->retry_of);
-                        })->each(function ($job) {
-                            dispatch(new RetryFailedJob($job->id));
-                        });
+                                return isset($payload->retry_of);
+                            })->each(function ($job) {
+                                dispatch(new RetryFailedJob($job->id));
+                            });
+        }
     }
 }

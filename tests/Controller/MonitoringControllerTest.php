@@ -5,9 +5,10 @@ namespace Laravel\Horizon\Tests\Controller;
 use Laravel\Horizon\Contracts\JobRepository;
 use Laravel\Horizon\Contracts\TagRepository;
 use Laravel\Horizon\JobPayload;
+use Laravel\Horizon\Tests\ControllerTest;
 use Mockery;
 
-class MonitoringControllerTest extends AbstractControllerTest
+class MonitoringControllerTest extends ControllerTest
 {
     public function test_monitored_tags_and_job_counts_are_returned()
     {
@@ -46,7 +47,7 @@ class MonitoringControllerTest extends AbstractControllerTest
 
         // Paginate first set...
         $response = $this->actingAs(new Fakes\User)
-                    ->get('/horizon/api/monitoring/tag');
+                    ->get('/horizon/api/monitoring/tag?tag=tag');
 
         $results = $response->original['jobs'];
 
@@ -56,7 +57,7 @@ class MonitoringControllerTest extends AbstractControllerTest
 
         // Paginate second set...
         $response = $this->actingAs(new Fakes\User)
-                    ->get('/horizon/api/monitoring/tag?starting_at=25');
+                    ->get('/horizon/api/monitoring/tag?starting_at=25&tag=tag');
 
         $results = $response->original['jobs'];
 
