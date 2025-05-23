@@ -29,6 +29,7 @@ class TrimTags
 
     public function __construct(TagRepository $tags)
     {
+        //
         $this->tags = $tags;
 
         $this->frequency = config('horizon.trim.tags', 1440);
