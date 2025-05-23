@@ -54,7 +54,7 @@ class RetryJobTest extends IntegrationTest
         $this->work();
 
         $this->assertSame(1, $this->failedJobs());
-        $this->assertSame(1, $this->monitoredJobs('first'));
+        $this->assertSame(2, $this->monitoredJobs('first'));
 
         // Test that retry job ID reference is stored on original failed job...
         $retried = Redis::connection('horizon')->hget($id, 'retried_by');

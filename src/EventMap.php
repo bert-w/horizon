@@ -44,13 +44,13 @@ trait EventMap
 
         Events\JobFailed::class => [
             Listeners\MarkJobAsFailed::class,
-            Listeners\StoreTagsForFailedJob::class,
         ],
 
         Events\MasterSupervisorLooped::class => [
             Listeners\TrimRecentJobs::class,
             Listeners\TrimFailedJobs::class,
             Listeners\TrimMonitoredJobs::class,
+            Listeners\TrimTags::class,
             Listeners\ExpireSupervisors::class,
             Listeners\MonitorMasterSupervisorMemory::class,
         ],

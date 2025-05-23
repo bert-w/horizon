@@ -2,6 +2,7 @@
 
 namespace Laravel\Horizon\Listeners;
 
+use Illuminate\Support\Str;
 use Laravel\Horizon\Contracts\TagRepository;
 use Laravel\Horizon\Events\JobPushed;
 
@@ -33,10 +34,23 @@ class StoreMonitoredTags
      */
     public function handle(JobPushed $event)
     {
-        $monitoring = $this->tags->monitored($event->payload->tags());
-
-        if (! empty($monitoring)) {
-            $this->tags->add($event->payload->id(), $monitoring);
+        if (! $monitored = config('horizon.tags.monitor', true)) {
+            return;
         }
+
+        if (is_array($monitored)) {
+            $tags = array_filter(
+                $event->payload->tags(),
+                fn (string $tag) => Str::is($monitored, $tag),
+            );
+        } else {
+            $tags = $event->payload->tags();
+        }
+
+        $this->tags->addTemporary(
+            $this->tags->ttl(),
+            $event->payload->id(),
+            $tags,
+        );
     }
 }

@@ -2,8 +2,10 @@
 
 namespace Laravel\Horizon\Repositories;
 
+use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Redis\Factory as RedisFactory;
 use Laravel\Horizon\Contracts\TagRepository;
+use Laravel\Horizon\LuaScripts;
 
 class RedisTagRepository implements TagRepository
 {
@@ -23,6 +25,18 @@ class RedisTagRepository implements TagRepository
     public function __construct(RedisFactory $redis)
     {
         $this->redis = $redis;
+    }
+
+    /**
+     * Get the Time-To-Live (TTL) in minutes for the tags.
+     *
+     * @return int
+     */
+    public function ttl()
+    {
+        return config('horizon.tags.ttl')
+            ?? max(...array_values(config('horizon.trim')))
+            ?? 2880;
     }
 
     /**
@@ -104,6 +118,21 @@ class RedisTagRepository implements TagRepository
     }
 
     /**
+     * Prune the tags that have expired.
+     *
+     * @return bool
+     */
+    public function prune()
+    {
+        return $this->connection()->eval(
+            LuaScripts::pruneSortedSetsByScore(),
+            0,
+            '-inf',
+            CarbonImmutable::now()->subMinutes($this->ttl())->getTimestamp(),
+        );
+    }
+
+    /**
      * Get the number of jobs matching a given tag.
      *
      * @param  string  $tag
@@ -180,6 +209,6 @@ class RedisTagRepository implements TagRepository
      */
     protected function connection()
     {
-        return $this->redis->connection('horizon');
+        return $this->redis->connection('horizon_tags');
     }
 }
