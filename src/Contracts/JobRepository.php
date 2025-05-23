@@ -73,14 +73,6 @@ interface JobRepository
     public function getSilenced(string|null $afterIndex = null, string|null $intersect = null);
 
     /**
-     * Get a chunk of silenced jobs.
-     *
-     * @param  string  $afterIndex
-     * @return \Illuminate\Support\Collection
-     */
-    public function getSilenced($afterIndex = null);
-
-    /**
      * Get the count of recent jobs.
      *
      * @return int
@@ -118,13 +110,6 @@ interface JobRepository
      * @return int
      */
     public function countSilenced(string|null $intersect = null);
-
-    /**
-     * Get the count of silenced jobs.
-     *
-     * @return int
-     */
-    public function countSilenced();
 
     /**
      * Get the count of the recently failed jobs.
