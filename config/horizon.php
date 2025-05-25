@@ -155,6 +155,34 @@ return [
 
     'fast_termination' => false,
 
+    'tags' => [
+        /*
+        |--------------------------------------------------------------------------
+        | Monitor
+        |--------------------------------------------------------------------------
+        |
+        | By default, Horizon will keep track of all job tags for searchability. If
+        | you want to restrict this behavior, you can optionally set an array
+        | with one or more matching patterns like so:
+        |
+        | ['sometagprefix:*']
+        |
+        */
+        'monitor' => true,
+
+        /*
+        |--------------------------------------------------------------------------
+        | Time-To-Live (TTL)
+        |--------------------------------------------------------------------------
+        |
+        | How long (in minutes) job tags should be kept. If `null`, the maximum
+        | value in the `horizon.trim` configuration will be used instead, so
+        | saved tags will always reference an existing job ID.
+        |
+        */
+        'ttl' => null,
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | Memory Limit (MB)
