@@ -149,7 +149,7 @@ LUA;
             local max = ARGV[2]
 
             repeat
-                local result = redis.call('scan', cursor)
+                local result = redis.call('scan', cursor, 'count', 1000)
                 cursor = result[1]
                 local keys = result[2]
 

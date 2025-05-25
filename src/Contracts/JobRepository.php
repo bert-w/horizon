@@ -40,37 +40,37 @@ interface JobRepository
      * Get a chunk of failed jobs.
      *
      * @param  string|null  $afterIndex
-     * @param  string|null  $intersect
+     * @param  string|null  $intersectWith
      * @return \Illuminate\Support\Collection
      */
-    public function getFailed(string|null $afterIndex = null, string|null $intersect = null);
+    public function getFailed(string|null $afterIndex = null, string|null $intersectWith = null);
 
     /**
      * Get a chunk of pending jobs.
      *
      * @param  string|null  $afterIndex
-     * @param  string|null  $intersect
+     * @param  string|null  $intersectWith
      * @return \Illuminate\Support\Collection
      */
-    public function getPending(string|null $afterIndex = null, string|null $intersect = null);
+    public function getPending(string|null $afterIndex = null, string|null $intersectWith = null);
 
     /**
      * Get a chunk of completed jobs.
      *
      * @param  string|null  $afterIndex
-     * @param  string|null  $intersect
+     * @param  string|null  $intersectWith
      * @return \Illuminate\Support\Collection
      */
-    public function getCompleted(string|null $afterIndex = null, string|null $intersect = null);
+    public function getCompleted(string|null $afterIndex = null, string|null $intersectWith = null);
 
     /**
      * Get a chunk of silenced jobs.
      *
      * @param  string|null  $afterIndex
-     * @param  string|null  $intersect
+     * @param  string|null  $intersectWith
      * @return \Illuminate\Support\Collection
      */
-    public function getSilenced(string|null $afterIndex = null, string|null $intersect = null);
+    public function getSilenced(string|null $afterIndex = null, string|null $intersectWith = null);
 
     /**
      * Get the count of recent jobs.
@@ -82,34 +82,34 @@ interface JobRepository
     /**
      * Get the count of failed jobs.
      *
-     * @param  string|null  $intersect
+     * @param  string|null  $intersectWith
      * @return int
      */
-    public function countFailed(string|null $intersect = null);
+    public function countFailed(string|null $intersectWith = null);
 
     /**
      * Get the count of pending jobs.
      *
-     * @param  string|null  $intersect
+     * @param  string|null  $intersectWith
      * @return int
      */
-    public function countPending(string|null $intersect = null);
+    public function countPending(string|null $intersectWith = null);
 
     /**
      * Get the count of completed jobs.
      *
-     * @param  string|null  $intersect
+     * @param  string|null  $intersectWith
      * @return int
      */
-    public function countCompleted(string|null $intersect = null);
+    public function countCompleted(string|null $intersectWith = null);
 
     /**
      * Get the count of silenced jobs.
      *
-     * @param  string|null  $intersect
+     * @param  string|null  $intersectWith
      * @return int
      */
-    public function countSilenced(string|null $intersect = null);
+    public function countSilenced(string|null $intersectWith = null);
 
     /**
      * Get the count of the recently failed jobs.

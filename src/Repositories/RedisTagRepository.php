@@ -28,7 +28,7 @@ class RedisTagRepository implements TagRepository
     }
 
     /**
-     * Get the Time-To-Live (TTL) in minutes for the tags.
+     * Get the Time-To-Live (TTL) in minutes for the stored tags.
      *
      * @return int
      */

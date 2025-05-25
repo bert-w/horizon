@@ -161,8 +161,9 @@ return [
         | Monitor
         |--------------------------------------------------------------------------
         |
-        | By default, Horizon will keep track of all job tags. If you want to change
-        | this behavior, you can optionally set an array with string patterns like:
+        | By default, Horizon will keep track of all job tags for searchability. If
+        | you want to restrict this behavior, you can optionally set an array
+        | with one or more matching patterns like so:
         |
         | ['sometagprefix:*']
         |
@@ -175,7 +176,8 @@ return [
         |--------------------------------------------------------------------------
         |
         | How long (in minutes) job tags should be kept. If `null`, the maximum
-        | of the `horizon.trim` configuration will be used instead.
+        | value in the `horizon.trim` configuration will be used instead, so
+        | saved tags will always reference an existing job ID.
         |
         */
         'ttl' => null,
