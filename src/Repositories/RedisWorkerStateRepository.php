@@ -8,6 +8,7 @@ use Laravel\Horizon\Contracts\SupervisorRepository;
 use Laravel\Horizon\Contracts\WorkerStateRepository;
 use Laravel\Horizon\RunningJob;
 use Laravel\Horizon\WorkerState;
+use Throwable;
 
 class RedisWorkerStateRepository implements WorkerStateRepository
 {
@@ -40,11 +41,17 @@ class RedisWorkerStateRepository implements WorkerStateRepository
             }
         });
 
-        return collect($records)
-            ->collapse()
-            ->map(fn (string $state) => $this->decode($state))
-            ->values()
-            ->all();
+        $states = [];
+
+        foreach ($records as $record) {
+            foreach ($record ?: [] as $state) {
+                if ($decoded = $this->decode($state)) {
+                    $states[] = $decoded;
+                }
+            }
+        }
+
+        return $states;
     }
 
     /**
@@ -54,9 +61,10 @@ class RedisWorkerStateRepository implements WorkerStateRepository
      */
     public function forSupervisor(string $supervisor): array
     {
-        return collect($this->connection()->hgetall($this->key($supervisor)))
-            ->map(fn (string $state) => $this->decode($state))
-            ->all();
+        return array_filter(array_map(
+            fn (string $state) => $this->decode($state),
+            $this->connection()->hgetall($this->key($supervisor))
+        ));
     }
 
     /**
@@ -107,16 +115,20 @@ class RedisWorkerStateRepository implements WorkerStateRepository
     }
 
     /**
-     * Decode a stored worker state.
+     * Decode a stored worker state, or null when it can't be, e.g. one written by another Horizon version.
      */
-    protected function decode(string $state): WorkerState
+    protected function decode(string $state): ?WorkerState
     {
-        // Stored by jsonSerialize(), so the keys are the constructor's parameter names...
-        $attributes = json_decode($state, true);
+        try {
+            // Stored by jsonSerialize(), so the keys are the constructor's parameter names...
+            $attributes = json_decode($state, true, flags: JSON_THROW_ON_ERROR);
 
-        $attributes['job'] = isset($attributes['job']) ? new RunningJob(...$attributes['job']) : null;
+            $attributes['job'] = isset($attributes['job']) ? new RunningJob(...$attributes['job']) : null;
 
-        return new WorkerState(...$attributes);
+            return new WorkerState(...$attributes);
+        } catch (Throwable) {
+            return null;
+        }
     }
 
     /**

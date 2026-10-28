@@ -71,4 +71,17 @@ class WorkerStateTest extends IntegrationTest
         $this->assertGreaterThan(0, $ttl);
         $this->assertLessThanOrEqual(30, $ttl);
     }
+
+    public function test_worker_states_that_cant_be_decoded_are_skipped(): void
+    {
+        $states = app(WorkerStateRepository::class);
+
+        $states->put($this->workerState('supervisor-1', 123));
+        Redis::connection('horizon')->hset('supervisor:supervisor-1:workers', 456, 'not json');
+        Redis::connection('horizon')->hset('supervisor:supervisor-1:workers', 789, '{"pid":789,"unknown":true}');
+
+        $this->assertNull($states->find('supervisor-1', 456));
+        $this->assertNull($states->find('supervisor-1', 789));
+        $this->assertSame([123], array_keys($states->forSupervisor('supervisor-1')));
+    }
 }
