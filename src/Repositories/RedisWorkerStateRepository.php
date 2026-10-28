@@ -6,11 +6,16 @@ use Illuminate\Contracts\Redis\Factory as RedisFactory;
 use Illuminate\Redis\Connections\Connection;
 use Laravel\Horizon\Contracts\SupervisorRepository;
 use Laravel\Horizon\Contracts\WorkerStateRepository;
-use stdClass;
+use Laravel\Horizon\WorkerState;
 
 class RedisWorkerStateRepository implements WorkerStateRepository
 {
     use UsesClusterAwarePipeline;
+
+    /**
+     * The seconds the states outlive the last write or supervisor loop, as the supervisor record does.
+     */
+    public const TTL = 30;
 
     /**
      * Create a new repository instance.
@@ -22,7 +27,7 @@ class RedisWorkerStateRepository implements WorkerStateRepository
     /**
      * Get the last recorded state of every worker of the running supervisors.
      *
-     * @return array<int, \stdClass>
+     * @return array<int, \Laravel\Horizon\WorkerState>
      */
     public function all(): array
     {
@@ -36,7 +41,7 @@ class RedisWorkerStateRepository implements WorkerStateRepository
 
         return collect($records)
             ->collapse()
-            ->map(fn (string $state) => json_decode($state))
+            ->map(fn (string $state) => $this->decode($state))
             ->values()
             ->all();
     }
@@ -44,33 +49,36 @@ class RedisWorkerStateRepository implements WorkerStateRepository
     /**
      * Get the last recorded state of every worker of the given supervisor.
      *
-     * @return array<int, \stdClass> keyed by process ID
+     * @return array<int, \Laravel\Horizon\WorkerState> keyed by process ID
      */
     public function forSupervisor(string $supervisor): array
     {
         return collect($this->connection()->hgetall($this->key($supervisor)))
-            ->map(fn (string $state) => json_decode($state))
+            ->map(fn (string $state) => $this->decode($state))
             ->all();
     }
 
     /**
      * Get the last recorded state of the given worker.
      */
-    public function find(string $supervisor, int $pid): ?stdClass
+    public function find(string $supervisor, int $pid): ?WorkerState
     {
         $state = $this->connection()->hget($this->key($supervisor), $pid);
 
-        return $state ? json_decode($state) : null;
+        return $state ? $this->decode($state) : null;
     }
 
     /**
-     * Replace the state of the given worker.
+     * Replace the state of the worker it describes.
      *
-     * @param  array<string, mixed>  $state
+     * The expiry is renewed as well, as a worker may outlive its supervisor when its states expired.
      */
-    public function put(string $supervisor, int $pid, array $state): void
+    public function put(WorkerState $state): void
     {
-        $this->connection()->hset($this->key($supervisor), $pid, json_encode($state));
+        $this->pipeline(function ($pipe) use ($state) {
+            $pipe->hset($this->key($state->supervisor), $state->pid, json_encode($state));
+            $pipe->expire($this->key($state->supervisor), self::TTL);
+        });
     }
 
     /**
@@ -82,11 +90,11 @@ class RedisWorkerStateRepository implements WorkerStateRepository
     }
 
     /**
-     * Keep the states of the given supervisor's workers for the given number of seconds.
+     * Keep the states of the given supervisor's workers while the supervisor is running.
      */
-    public function expire(string $supervisor, int $seconds): void
+    public function refresh(string $supervisor): void
     {
-        $this->connection()->expire($this->key($supervisor), $seconds);
+        $this->connection()->expire($this->key($supervisor), self::TTL);
     }
 
     /**
@@ -95,6 +103,14 @@ class RedisWorkerStateRepository implements WorkerStateRepository
     protected function key(string $supervisor): string
     {
         return 'supervisor:'.$supervisor.':workers';
+    }
+
+    /**
+     * Decode a stored worker state.
+     */
+    protected function decode(string $state): WorkerState
+    {
+        return WorkerState::fromArray(json_decode($state, true));
     }
 
     /**

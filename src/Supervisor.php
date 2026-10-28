@@ -360,7 +360,7 @@ class Supervisor implements Pausable, Restartable, Terminable
         app(SupervisorRepository::class)->update($this);
 
         // The worker states expire along with the supervisor record, as nothing removes them when a host dies...
-        app(WorkerStateRepository::class)->expire($this->name, 30);
+        app(WorkerStateRepository::class)->refresh($this->name);
     }
 
     /**

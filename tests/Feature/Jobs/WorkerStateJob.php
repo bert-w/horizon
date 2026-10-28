@@ -3,11 +3,11 @@
 namespace Laravel\Horizon\Tests\Feature\Jobs;
 
 use Laravel\Horizon\Contracts\WorkerStateRepository;
-use stdClass;
+use Laravel\Horizon\WorkerState;
 
 class WorkerStateJob
 {
-    public static ?stdClass $state = null;
+    public static ?WorkerState $state = null;
 
     public int $timeout = 45;
 

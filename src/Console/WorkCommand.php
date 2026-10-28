@@ -10,6 +10,8 @@ use Illuminate\Queue\Events\JobProcessing;
 use Illuminate\Queue\Events\JobReleasedAfterException;
 use Illuminate\Queue\Events\WorkerStopping;
 use Laravel\Horizon\Contracts\WorkerStateRepository;
+use Laravel\Horizon\RunningJob;
+use Laravel\Horizon\WorkerState;
 
 class WorkCommand extends BaseWorkCommand
 {
@@ -73,24 +75,25 @@ class WorkCommand extends BaseWorkCommand
 
         $states = $this->laravel->make(WorkerStateRepository::class);
 
-        $worker = [
-            'pid' => getmypid(),
-            'supervisor' => $supervisor,
-            'connection' => $this->argument('connection') ?: $this->laravel['config']['queue.default'],
-            'queue' => $this->option('queue'),
-            'started_at' => CarbonImmutable::now()->getTimestamp(),
-        ];
+        $pid = getmypid();
+        $connection = $this->argument('connection') ?: $this->laravel['config']['queue.default'];
+        $startedAt = CarbonImmutable::now()->getTimestamp();
 
-        $record = function (string $status, ?array $job = null) use ($states, $worker): void {
-            $states->put($worker['supervisor'], $worker['pid'], $worker + [
-                'status' => $status,
-                'memory' => memory_get_usage(true),
-                'updated_at' => CarbonImmutable::now()->getTimestamp(),
-                'job' => $job,
-            ]);
+        $record = function (?RunningJob $job = null) use ($states, $pid, $supervisor, $connection, $startedAt): void {
+            $states->put(new WorkerState(
+                pid: $pid,
+                supervisor: $supervisor,
+                connection: $connection,
+                queue: $this->option('queue'),
+                status: $job ? WorkerState::BUSY : WorkerState::IDLE,
+                memory: memory_get_usage(true),
+                startedAt: $startedAt,
+                updatedAt: CarbonImmutable::now()->getTimestamp(),
+                job: $job,
+            ));
         };
 
-        $record('idle');
+        $record();
 
         $this->laravel['events']->listen(JobProcessing::class, function (JobProcessing $event) use ($record): void {
             $startedAt = CarbonImmutable::now()->getTimestamp();
@@ -98,26 +101,23 @@ class WorkCommand extends BaseWorkCommand
             // The same timeout the worker enforces: the job's own, else the worker's...
             $timeout = $event->job->timeout() ?? (int) $this->option('timeout');
 
-            $record('busy', [
-                'id' => $event->job->getJobId(),
-                'uuid' => $event->job->uuid(),
-                'name' => $event->job->resolveName(),
-                'queue' => $event->job->getQueue(),
-                'attempts' => $event->job->attempts(),
-                'started_at' => $startedAt,
-                'timeout' => $timeout,
-                'deadline' => $timeout > 0 ? $startedAt + $timeout : null,
-            ]);
+            $record(new RunningJob(
+                id: $event->job->getJobId(),
+                uuid: $event->job->uuid(),
+                name: $event->job->resolveName(),
+                queue: $event->job->getQueue(),
+                attempts: $event->job->attempts(),
+                startedAt: $startedAt,
+                timeout: $timeout,
+                deadline: $timeout > 0 ? $startedAt + $timeout : null,
+            ));
         });
 
         $this->laravel['events']->listen(
             [JobProcessed::class, JobReleasedAfterException::class, JobFailed::class],
-            fn () => $record('idle')
+            fn () => $record()
         );
 
-        $this->laravel['events']->listen(
-            WorkerStopping::class,
-            fn () => $states->forget($worker['supervisor'], $worker['pid'])
-        );
+        $this->laravel['events']->listen(WorkerStopping::class, fn () => $states->forget($supervisor, $pid));
     }
 }

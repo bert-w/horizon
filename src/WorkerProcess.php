@@ -7,7 +7,6 @@ use Closure;
 use Laravel\Horizon\Contracts\WorkerStateRepository;
 use Laravel\Horizon\Events\UnableToLaunchProcess;
 use Laravel\Horizon\Events\WorkerProcessRestarting;
-use stdClass;
 use Symfony\Component\Process\Exception\ExceptionInterface;
 
 class WorkerProcess
@@ -128,7 +127,7 @@ class WorkerProcess
     /**
      * Get the state the worker last recorded.
      */
-    public function state(): ?stdClass
+    public function state(): ?WorkerState
     {
         return $this->supervisor && $this->pid
             ? app(WorkerStateRepository::class)->find($this->supervisor, $this->pid)

@@ -22,6 +22,7 @@ use Laravel\Horizon\SupervisorOptions;
 use Laravel\Horizon\SystemProcessCounter;
 use Laravel\Horizon\Tests\IntegrationTest;
 use Laravel\Horizon\WorkerCommandString;
+use Laravel\Horizon\WorkerState;
 use Mockery;
 use PHPUnit\Framework\Attributes\RequiresPhpExtension;
 
@@ -374,10 +375,9 @@ class SupervisorTest extends IntegrationTest
         usleep(100 * 1000);
 
         $process = $supervisor->processes()->first();
-        app(WorkerStateRepository::class)->put($supervisor->name, $process->pid, [
-            'status' => 'busy',
-            'job' => ['deadline' => CarbonImmutable::now()->addMinute()->getTimestamp()],
-        ]);
+        app(WorkerStateRepository::class)->put($this->workerState(
+            $supervisor->name, $process->pid, WorkerState::BUSY, CarbonImmutable::now()->addMinute()->getTimestamp()
+        ));
 
         $supervisor->processPools[0]->markForTermination($process);
         $supervisor->terminatingProcesses();
@@ -396,10 +396,9 @@ class SupervisorTest extends IntegrationTest
         usleep(100 * 1000);
 
         $process = $supervisor->processes()->first();
-        app(WorkerStateRepository::class)->put($supervisor->name, $process->pid, [
-            'status' => 'busy',
-            'job' => ['deadline' => CarbonImmutable::now()->subSecond()->getTimestamp()],
-        ]);
+        app(WorkerStateRepository::class)->put($this->workerState(
+            $supervisor->name, $process->pid, WorkerState::BUSY, CarbonImmutable::now()->subSecond()->getTimestamp()
+        ));
 
         $supervisor->processPools[0]->markForTermination($process);
         $supervisor->terminatingProcesses();
@@ -419,10 +418,7 @@ class SupervisorTest extends IntegrationTest
         usleep(100 * 1000);
 
         $process = $supervisor->processes()->first();
-        app(WorkerStateRepository::class)->put($supervisor->name, $process->pid, [
-            'status' => 'busy',
-            'job' => ['deadline' => null],
-        ]);
+        app(WorkerStateRepository::class)->put($this->workerState($supervisor->name, $process->pid, WorkerState::BUSY));
 
         $supervisor->processPools[0]->markForTermination($process);
         $supervisor->terminatingProcesses();
