@@ -6,6 +6,7 @@ use Illuminate\Contracts\Redis\Factory as RedisFactory;
 use Illuminate\Redis\Connections\Connection;
 use Laravel\Horizon\Contracts\SupervisorRepository;
 use Laravel\Horizon\Contracts\WorkerStateRepository;
+use Laravel\Horizon\RunningJob;
 use Laravel\Horizon\WorkerState;
 
 class RedisWorkerStateRepository implements WorkerStateRepository
@@ -110,7 +111,12 @@ class RedisWorkerStateRepository implements WorkerStateRepository
      */
     protected function decode(string $state): WorkerState
     {
-        return WorkerState::fromArray(json_decode($state, true));
+        // Stored by jsonSerialize(), so the keys are the constructor's parameter names...
+        $attributes = json_decode($state, true);
+
+        $attributes['job'] = isset($attributes['job']) ? new RunningJob(...$attributes['job']) : null;
+
+        return new WorkerState(...$attributes);
     }
 
     /**

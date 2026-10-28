@@ -22,25 +22,6 @@ class RunningJob implements JsonSerializable
     }
 
     /**
-     * Create a running job from its stored attributes.
-     *
-     * @param  array<string, mixed>  $attributes
-     */
-    public static function fromArray(array $attributes): static
-    {
-        return new static(
-            id: $attributes['id'],
-            uuid: $attributes['uuid'],
-            name: $attributes['name'],
-            queue: $attributes['queue'],
-            attempts: $attributes['attempts'],
-            startedAt: $attributes['startedAt'],
-            timeout: $attributes['timeout'],
-            deadline: $attributes['deadline'],
-        );
-    }
-
-    /**
      * Get the attributes to store.
      *
      * @return array<string, mixed>

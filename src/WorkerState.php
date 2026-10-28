@@ -33,26 +33,6 @@ class WorkerState implements JsonSerializable
     }
 
     /**
-     * Create a worker state from its stored attributes.
-     *
-     * @param  array<string, mixed>  $attributes
-     */
-    public static function fromArray(array $attributes): static
-    {
-        return new static(
-            pid: $attributes['pid'],
-            supervisor: $attributes['supervisor'],
-            connection: $attributes['connection'],
-            queue: $attributes['queue'],
-            status: $attributes['status'],
-            memory: $attributes['memory'],
-            startedAt: $attributes['startedAt'],
-            updatedAt: $attributes['updatedAt'],
-            job: isset($attributes['job']) ? RunningJob::fromArray($attributes['job']) : null,
-        );
-    }
-
-    /**
      * Get the attributes to store.
      *
      * @return array<string, mixed>
