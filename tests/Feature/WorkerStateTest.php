@@ -52,7 +52,7 @@ class WorkerStateTest extends IntegrationTest
         $states->put($this->workerState('supervisor-1', 456));
 
         $this->assertSame(WorkerState::BUSY, $states->find('supervisor-1', 123)->status);
-        $this->assertSame([123, 456], array_keys($states->forSupervisor('supervisor-1')));
+        $this->assertEqualsCanonicalizing([123, 456], array_keys($states->forSupervisor('supervisor-1')));
 
         $states->put($this->workerState('supervisor-1', 123));
         $states->forget('supervisor-1', 456);
