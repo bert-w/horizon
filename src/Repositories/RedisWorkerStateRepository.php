@@ -3,37 +3,28 @@
 namespace Laravel\Horizon\Repositories;
 
 use Illuminate\Contracts\Redis\Factory as RedisFactory;
+use Illuminate\Redis\Connections\Connection;
 use Laravel\Horizon\Contracts\SupervisorRepository;
 use Laravel\Horizon\Contracts\WorkerStateRepository;
+use stdClass;
 
 class RedisWorkerStateRepository implements WorkerStateRepository
 {
     use UsesClusterAwarePipeline;
 
     /**
-     * The Redis connection instance.
-     *
-     * @var \Illuminate\Contracts\Redis\Factory
-     */
-    public $redis;
-
-    /**
      * Create a new repository instance.
-     *
-     * @param  \Illuminate\Contracts\Redis\Factory  $redis
-     * @return void
      */
-    public function __construct(RedisFactory $redis)
+    public function __construct(public RedisFactory $redis)
     {
-        $this->redis = $redis;
     }
 
     /**
      * Get the last recorded state of every worker of the running supervisors.
      *
-     * @return array
+     * @return array<int, \stdClass>
      */
-    public function all()
+    public function all(): array
     {
         $names = app(SupervisorRepository::class)->names();
 
@@ -44,33 +35,28 @@ class RedisWorkerStateRepository implements WorkerStateRepository
         });
 
         return collect($records)
-            ->flatMap(fn ($states) => (array) $states)
-            ->map(fn ($state) => json_decode($state))
+            ->collapse()
+            ->map(fn (string $state) => json_decode($state))
             ->values()
             ->all();
     }
 
     /**
-     * Get the last recorded state of every worker of the given supervisor, keyed by process ID.
+     * Get the last recorded state of every worker of the given supervisor.
      *
-     * @param  string  $supervisor
-     * @return array
+     * @return array<int, \stdClass> keyed by process ID
      */
-    public function forSupervisor($supervisor)
+    public function forSupervisor(string $supervisor): array
     {
         return collect($this->connection()->hgetall($this->key($supervisor)))
-            ->map(fn ($state) => json_decode($state))
+            ->map(fn (string $state) => json_decode($state))
             ->all();
     }
 
     /**
      * Get the last recorded state of the given worker.
-     *
-     * @param  string  $supervisor
-     * @param  int  $pid
-     * @return \stdClass|null
      */
-    public function find($supervisor, $pid)
+    public function find(string $supervisor, int $pid): ?stdClass
     {
         $state = $this->connection()->hget($this->key($supervisor), $pid);
 
@@ -80,59 +66,41 @@ class RedisWorkerStateRepository implements WorkerStateRepository
     /**
      * Replace the state of the given worker.
      *
-     * @param  string  $supervisor
-     * @param  int  $pid
-     * @param  array  $state
-     * @return void
+     * @param  array<string, mixed>  $state
      */
-    public function put($supervisor, $pid, array $state)
+    public function put(string $supervisor, int $pid, array $state): void
     {
-        $this->connection()->hset($this->key($supervisor), $pid, json_encode(
-            $state, JSON_INVALID_UTF8_SUBSTITUTE | JSON_PARTIAL_OUTPUT_ON_ERROR
-        ));
+        $this->connection()->hset($this->key($supervisor), $pid, json_encode($state));
     }
 
     /**
      * Remove the state of the given worker.
-     *
-     * @param  string  $supervisor
-     * @param  int  $pid
-     * @return void
      */
-    public function forget($supervisor, $pid)
+    public function forget(string $supervisor, int $pid): void
     {
         $this->connection()->hdel($this->key($supervisor), $pid);
     }
 
     /**
      * Keep the states of the given supervisor's workers for the given number of seconds.
-     *
-     * @param  string  $supervisor
-     * @param  int  $seconds
-     * @return void
      */
-    public function expire($supervisor, $seconds)
+    public function expire(string $supervisor, int $seconds): void
     {
         $this->connection()->expire($this->key($supervisor), $seconds);
     }
 
     /**
-     * Get the key holding the states of the given supervisor's workers.
-     *
-     * @param  string  $supervisor
-     * @return string
+     * Get the key of the hash holding the states of the given supervisor's workers.
      */
-    protected function key($supervisor)
+    protected function key(string $supervisor): string
     {
         return 'supervisor:'.$supervisor.':workers';
     }
 
     /**
      * Get the Redis connection instance.
-     *
-     * @return \Illuminate\Redis\Connections\Connection
      */
-    protected function connection()
+    protected function connection(): Connection
     {
         return $this->redis->connection('horizon');
     }

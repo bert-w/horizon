@@ -363,7 +363,7 @@ class SupervisorTest extends IntegrationTest
         $this->assertFalse($process->isRunning());
     }
 
-    public function test_terminating_processes_may_finish_their_job_until_it_times_out()
+    public function test_terminating_processes_may_finish_their_job_until_it_times_out(): void
     {
         $this->supervisor = $supervisor = new Supervisor($options = $this->supervisorOptions());
         $options->timeout = 0;
@@ -385,7 +385,7 @@ class SupervisorTest extends IntegrationTest
         $this->assertTrue($process->isRunning());
     }
 
-    public function test_terminating_processes_are_hard_stopped_once_their_job_timed_out()
+    public function test_terminating_processes_are_hard_stopped_once_their_job_timed_out(): void
     {
         $this->supervisor = $supervisor = new Supervisor($options = $this->supervisorOptions());
         $options->timeout = 60;
@@ -406,6 +406,28 @@ class SupervisorTest extends IntegrationTest
 
         $this->assertFalse($process->isRunning());
         $this->assertNull($process->state());
+    }
+
+    public function test_terminating_processes_busy_with_a_job_without_timeout_fall_back_to_the_supervisor_timeout(): void
+    {
+        $this->supervisor = $supervisor = new Supervisor($options = $this->supervisorOptions());
+        $options->timeout = 0;
+        $options->sleep = 0;
+
+        $supervisor->scale(1);
+        $supervisor->loop();
+        usleep(100 * 1000);
+
+        $process = $supervisor->processes()->first();
+        app(WorkerStateRepository::class)->put($supervisor->name, $process->pid, [
+            'status' => 'busy',
+            'job' => ['deadline' => null],
+        ]);
+
+        $supervisor->processPools[0]->markForTermination($process);
+        $supervisor->terminatingProcesses();
+
+        $this->assertFalse($process->isRunning());
     }
 
     public function test_supervisor_process_terminates_all_workers_and_exits_on_full_termination()

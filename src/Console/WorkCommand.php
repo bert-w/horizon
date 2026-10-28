@@ -64,10 +64,8 @@ class WorkCommand extends BaseWorkCommand
 
     /**
      * Keep the state of this worker in step with the job it is running.
-     *
-     * @return void
      */
-    protected function recordWorkerState()
+    protected function recordWorkerState(): void
     {
         if (! $supervisor = $this->option('supervisor')) {
             return;
@@ -83,12 +81,9 @@ class WorkCommand extends BaseWorkCommand
             'started_at' => CarbonImmutable::now()->getTimestamp(),
         ];
 
-        $jobs = 0;
-
-        $record = function ($status, $job = null) use ($states, $worker, &$jobs) {
+        $record = function (string $status, ?array $job = null) use ($states, $worker): void {
             $states->put($worker['supervisor'], $worker['pid'], $worker + [
                 'status' => $status,
-                'jobs' => $jobs,
                 'memory' => memory_get_usage(true),
                 'updated_at' => CarbonImmutable::now()->getTimestamp(),
                 'job' => $job,
@@ -97,9 +92,7 @@ class WorkCommand extends BaseWorkCommand
 
         $record('idle');
 
-        $this->laravel['events']->listen(JobProcessing::class, function ($event) use ($record, &$jobs) {
-            $jobs++;
-
+        $this->laravel['events']->listen(JobProcessing::class, function (JobProcessing $event) use ($record): void {
             $startedAt = CarbonImmutable::now()->getTimestamp();
 
             // The same timeout the worker enforces: the job's own, else the worker's...

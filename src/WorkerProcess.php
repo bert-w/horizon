@@ -7,6 +7,7 @@ use Closure;
 use Laravel\Horizon\Contracts\WorkerStateRepository;
 use Laravel\Horizon\Events\UnableToLaunchProcess;
 use Laravel\Horizon\Events\WorkerProcessRestarting;
+use stdClass;
 use Symfony\Component\Process\Exception\ExceptionInterface;
 
 class WorkerProcess
@@ -34,26 +35,21 @@ class WorkerProcess
 
     /**
      * The process ID of the worker, kept after it exits so its state can be cleaned up.
-     *
-     * @var int|null
      */
-    public $pid;
+    public ?int $pid = null;
 
     /**
      * The name of the supervisor the worker belongs to.
-     *
-     * @var string|null
      */
-    public $supervisor;
+    public ?string $supervisor = null;
 
     /**
      * Create a new worker process instance.
      *
      * @param  \Symfony\Component\Process\Process  $process
-     * @param  string|null  $supervisor
      * @return void
      */
-    public function __construct($process, $supervisor = null)
+    public function __construct($process, ?string $supervisor = null)
     {
         $this->process = $process;
         $this->supervisor = $supervisor;
@@ -131,10 +127,8 @@ class WorkerProcess
 
     /**
      * Get the state the worker last recorded.
-     *
-     * @return \stdClass|null
      */
-    public function state()
+    public function state(): ?stdClass
     {
         return $this->supervisor && $this->pid
             ? app(WorkerStateRepository::class)->find($this->supervisor, $this->pid)
@@ -143,10 +137,8 @@ class WorkerProcess
 
     /**
      * Remove the state the worker left behind.
-     *
-     * @return void
      */
-    public function forgetState()
+    public function forgetState(): void
     {
         if ($this->supervisor && $this->pid) {
             app(WorkerStateRepository::class)->forget($this->supervisor, $this->pid);

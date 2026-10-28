@@ -284,10 +284,9 @@ class ProcessPool implements Countable
      * timeout only applies when the worker is idle, its job has no timeout, or its
      * state is unknown.
      *
-     * @param  array  $process
-     * @return \Carbon\CarbonImmutable
+     * @param  array{process: \Laravel\Horizon\WorkerProcess, terminatedAt: \Carbon\CarbonImmutable}  $process
      */
-    protected function hangingAfter(array $process)
+    protected function hangingAfter(array $process): CarbonImmutable
     {
         $deadline = $process['process']->state()?->job?->deadline;
 

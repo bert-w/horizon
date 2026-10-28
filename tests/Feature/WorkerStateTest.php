@@ -17,7 +17,7 @@ class WorkerStateTest extends IntegrationTest
         parent::tearDown();
     }
 
-    public function test_worker_records_the_job_it_is_running()
+    public function test_worker_records_the_job_it_is_running(): void
     {
         Queue::push(new WorkerStateJob);
 
@@ -39,7 +39,7 @@ class WorkerStateTest extends IntegrationTest
         $this->assertSame('idle', app(WorkerStateRepository::class)->find('supervisor-1', getmypid())->status);
     }
 
-    public function test_worker_states_can_be_retrieved()
+    public function test_worker_states_can_be_retrieved(): void
     {
         $states = app(WorkerStateRepository::class);
 
