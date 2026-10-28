@@ -2,7 +2,14 @@
 
 namespace Laravel\Horizon\Console;
 
+use Carbon\CarbonImmutable;
 use Illuminate\Queue\Console\WorkCommand as BaseWorkCommand;
+use Illuminate\Queue\Events\JobFailed;
+use Illuminate\Queue\Events\JobProcessed;
+use Illuminate\Queue\Events\JobProcessing;
+use Illuminate\Queue\Events\JobReleasedAfterException;
+use Illuminate\Queue\Events\WorkerStopping;
+use Laravel\Horizon\Contracts\WorkerStateRepository;
 
 class WorkCommand extends BaseWorkCommand
 {
@@ -50,6 +57,74 @@ class WorkCommand extends BaseWorkCommand
             ignore_user_abort(true);
         }
 
+        $this->recordWorkerState();
+
         parent::handle();
+    }
+
+    /**
+     * Keep the state of this worker in step with the job it is running.
+     *
+     * @return void
+     */
+    protected function recordWorkerState()
+    {
+        if (! $supervisor = $this->option('supervisor')) {
+            return;
+        }
+
+        $states = $this->laravel->make(WorkerStateRepository::class);
+
+        $worker = [
+            'pid' => getmypid(),
+            'supervisor' => $supervisor,
+            'connection' => $this->argument('connection') ?: $this->laravel['config']['queue.default'],
+            'queue' => $this->option('queue'),
+            'started_at' => CarbonImmutable::now()->getTimestamp(),
+        ];
+
+        $jobs = 0;
+
+        $record = function ($status, $job = null) use ($states, $worker, &$jobs) {
+            $states->put($worker['supervisor'], $worker['pid'], $worker + [
+                'status' => $status,
+                'jobs' => $jobs,
+                'memory' => memory_get_usage(true),
+                'updated_at' => CarbonImmutable::now()->getTimestamp(),
+                'job' => $job,
+            ]);
+        };
+
+        $record('idle');
+
+        $this->laravel['events']->listen(JobProcessing::class, function ($event) use ($record, &$jobs) {
+            $jobs++;
+
+            $startedAt = CarbonImmutable::now()->getTimestamp();
+
+            // The same timeout the worker enforces: the job's own, else the worker's...
+            $timeout = $event->job->timeout() ?? (int) $this->option('timeout');
+
+            $record('busy', [
+                'id' => $event->job->getJobId(),
+                'uuid' => $event->job->uuid(),
+                'name' => $event->job->resolveName(),
+                'queue' => $event->job->getQueue(),
+                'attempts' => $event->job->attempts(),
+                'started_at' => $startedAt,
+                'timeout' => $timeout,
+                'deadline' => $timeout > 0 ? $startedAt + $timeout : null,
+            ]);
+        });
+
+        $this->laravel['events']->listen(
+            [JobProcessed::class, JobReleasedAfterException::class, JobFailed::class],
+            fn () => $record('idle')
+        );
+
+        $this->laravel['events']->listen(
+            WorkerStopping::class,
+            fn () => $states->forget($worker['supervisor'], $worker['pid'])
+        );
     }
 }

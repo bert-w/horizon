@@ -12,6 +12,7 @@ use Laravel\Horizon\Contracts\Pausable;
 use Laravel\Horizon\Contracts\Restartable;
 use Laravel\Horizon\Contracts\SupervisorRepository;
 use Laravel\Horizon\Contracts\Terminable;
+use Laravel\Horizon\Contracts\WorkerStateRepository;
 use Laravel\Horizon\Events\SupervisorLooped;
 use Throwable;
 
@@ -357,6 +358,9 @@ class Supervisor implements Pausable, Restartable, Terminable
     public function persist()
     {
         app(SupervisorRepository::class)->update($this);
+
+        // The worker states expire along with the supervisor record, as nothing removes them when a host dies...
+        app(WorkerStateRepository::class)->expire($this->name, 30);
     }
 
     /**
