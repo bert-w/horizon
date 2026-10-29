@@ -7,16 +7,6 @@ use JsonSerializable;
 class WorkerState implements JsonSerializable
 {
     /**
-     * The worker is waiting for a job.
-     */
-    public const IDLE = 'idle';
-
-    /**
-     * The worker is running a job.
-     */
-    public const BUSY = 'busy';
-
-    /**
      * Create a new worker state instance.
      */
     public function __construct(
@@ -24,7 +14,6 @@ class WorkerState implements JsonSerializable
         public string $supervisor,
         public string $connection,
         public ?string $queue,
-        public string $status,
         public int $memory,
         public int $startedAt,
         public int $updatedAt,

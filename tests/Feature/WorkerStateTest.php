@@ -8,7 +8,6 @@ use Illuminate\Support\Facades\Redis;
 use Laravel\Horizon\Contracts\WorkerStateRepository;
 use Laravel\Horizon\Tests\Feature\Jobs\WorkerStateJob;
 use Laravel\Horizon\Tests\IntegrationTest;
-use Laravel\Horizon\WorkerState;
 
 class WorkerStateTest extends IntegrationTest
 {
@@ -32,7 +31,6 @@ class WorkerStateTest extends IntegrationTest
 
         $state = WorkerStateJob::$state;
 
-        $this->assertSame(WorkerState::BUSY, $state->status);
         $this->assertSame(getmypid(), $state->pid);
         $this->assertSame(WorkerStateJob::class, $state->job->name);
         $this->assertSame(45, $state->job->timeout);
@@ -40,7 +38,6 @@ class WorkerStateTest extends IntegrationTest
 
         $state = app(WorkerStateRepository::class)->find('supervisor-1', getmypid());
 
-        $this->assertSame(WorkerState::IDLE, $state->status);
         $this->assertNull($state->job);
     }
 
@@ -48,16 +45,16 @@ class WorkerStateTest extends IntegrationTest
     {
         $states = app(WorkerStateRepository::class);
 
-        $states->put($this->workerState('supervisor-1', 123, WorkerState::BUSY));
+        $states->put($this->workerState('supervisor-1', 123, busy: true));
         $states->put($this->workerState('supervisor-1', 456));
 
-        $this->assertSame(WorkerState::BUSY, $states->find('supervisor-1', 123)->status);
+        $this->assertNotNull($states->find('supervisor-1', 123)->job);
         $this->assertEqualsCanonicalizing([123, 456], array_keys($states->forSupervisor('supervisor-1')));
 
         $states->put($this->workerState('supervisor-1', 123));
         $states->forget('supervisor-1', 456);
 
-        $this->assertSame(WorkerState::IDLE, $states->find('supervisor-1', 123)->status);
+        $this->assertNull($states->find('supervisor-1', 123)->job);
         $this->assertNull($states->find('supervisor-1', 456));
         $this->assertNull($states->find('supervisor-2', 123));
     }

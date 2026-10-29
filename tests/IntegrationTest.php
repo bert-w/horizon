@@ -119,18 +119,17 @@ abstract class IntegrationTest extends TestCase
     /**
      * Make the state of a worker, running a job with the given deadline when busy.
      */
-    protected function workerState(string $supervisor, int $pid, string $status = WorkerState::IDLE, ?int $deadline = null): WorkerState
+    protected function workerState(string $supervisor, int $pid, bool $busy = false, ?int $deadline = null): WorkerState
     {
         return new WorkerState(
             pid: $pid,
             supervisor: $supervisor,
             connection: 'redis',
             queue: 'default',
-            status: $status,
             memory: 0,
             startedAt: 0,
             updatedAt: 0,
-            job: $status === WorkerState::BUSY
+            job: $busy
                 ? new RunningJob(1, null, 'Job', 'default', 1, 0, $deadline ? 60 : 0, $deadline)
                 : null,
         );

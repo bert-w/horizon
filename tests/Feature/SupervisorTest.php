@@ -22,7 +22,6 @@ use Laravel\Horizon\SupervisorOptions;
 use Laravel\Horizon\SystemProcessCounter;
 use Laravel\Horizon\Tests\IntegrationTest;
 use Laravel\Horizon\WorkerCommandString;
-use Laravel\Horizon\WorkerState;
 use Mockery;
 use PHPUnit\Framework\Attributes\RequiresPhpExtension;
 
@@ -376,7 +375,7 @@ class SupervisorTest extends IntegrationTest
 
         $process = $supervisor->processes()->first();
         app(WorkerStateRepository::class)->put($this->workerState(
-            $supervisor->name, $process->pid, WorkerState::BUSY, CarbonImmutable::now()->addMinute()->getTimestamp()
+            $supervisor->name, $process->pid, true, CarbonImmutable::now()->addMinute()->getTimestamp()
         ));
 
         $supervisor->processPools[0]->markForTermination($process);
@@ -397,7 +396,7 @@ class SupervisorTest extends IntegrationTest
 
         $process = $supervisor->processes()->first();
         app(WorkerStateRepository::class)->put($this->workerState(
-            $supervisor->name, $process->pid, WorkerState::BUSY, CarbonImmutable::now()->subSecond()->getTimestamp()
+            $supervisor->name, $process->pid, true, CarbonImmutable::now()->subSecond()->getTimestamp()
         ));
 
         $supervisor->processPools[0]->markForTermination($process);
@@ -418,7 +417,7 @@ class SupervisorTest extends IntegrationTest
         usleep(100 * 1000);
 
         $process = $supervisor->processes()->first();
-        app(WorkerStateRepository::class)->put($this->workerState($supervisor->name, $process->pid, WorkerState::BUSY));
+        app(WorkerStateRepository::class)->put($this->workerState($supervisor->name, $process->pid, true));
 
         $supervisor->processPools[0]->markForTermination($process);
         $supervisor->terminatingProcesses();

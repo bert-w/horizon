@@ -85,7 +85,6 @@ class WorkCommand extends BaseWorkCommand
                 supervisor: $supervisor,
                 connection: $connection,
                 queue: $this->option('queue'),
-                status: $job ? WorkerState::BUSY : WorkerState::IDLE,
                 memory: memory_get_usage(true),
                 startedAt: $startedAt,
                 updatedAt: CarbonImmutable::now()->getTimestamp(),
