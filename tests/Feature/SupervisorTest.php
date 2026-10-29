@@ -12,6 +12,7 @@ use Laravel\Horizon\AutoScaler;
 use Laravel\Horizon\Contracts\HorizonCommandQueue;
 use Laravel\Horizon\Contracts\JobRepository;
 use Laravel\Horizon\Contracts\SupervisorRepository;
+use Laravel\Horizon\Contracts\WorkerStateRepository;
 use Laravel\Horizon\Events\WorkerProcessRestarting;
 use Laravel\Horizon\MasterSupervisor;
 use Laravel\Horizon\PhpBinary;
@@ -356,6 +357,68 @@ class SupervisorTest extends IntegrationTest
         usleep(100 * 1000);
 
         $process = $supervisor->processes()->first();
+        $supervisor->processPools[0]->markForTermination($process);
+        $supervisor->terminatingProcesses();
+
+        $this->assertFalse($process->isRunning());
+    }
+
+    public function test_terminating_processes_may_finish_their_job_until_it_times_out(): void
+    {
+        $this->supervisor = $supervisor = new Supervisor($options = $this->supervisorOptions());
+        $options->timeout = 0;
+        $options->sleep = 0;
+
+        $supervisor->scale(1);
+        $supervisor->loop();
+        usleep(100 * 1000);
+
+        $process = $supervisor->processes()->first();
+        app(WorkerStateRepository::class)->put($this->workerState(
+            $supervisor->name, $process->pid, true, CarbonImmutable::now()->addMinute()->getTimestamp()
+        ));
+
+        $supervisor->processPools[0]->markForTermination($process);
+        $supervisor->terminatingProcesses();
+
+        $this->assertTrue($process->isRunning());
+    }
+
+    public function test_terminating_processes_are_hard_stopped_once_their_job_timed_out(): void
+    {
+        $this->supervisor = $supervisor = new Supervisor($options = $this->supervisorOptions());
+        $options->timeout = 60;
+        $options->sleep = 0;
+
+        $supervisor->scale(1);
+        $supervisor->loop();
+        usleep(100 * 1000);
+
+        $process = $supervisor->processes()->first();
+        app(WorkerStateRepository::class)->put($this->workerState(
+            $supervisor->name, $process->pid, true, CarbonImmutable::now()->subSecond()->getTimestamp()
+        ));
+
+        $supervisor->processPools[0]->markForTermination($process);
+        $supervisor->terminatingProcesses();
+
+        $this->assertFalse($process->isRunning());
+        $this->assertNull($process->state());
+    }
+
+    public function test_terminating_processes_busy_with_a_job_without_timeout_fall_back_to_the_supervisor_timeout(): void
+    {
+        $this->supervisor = $supervisor = new Supervisor($options = $this->supervisorOptions());
+        $options->timeout = 0;
+        $options->sleep = 0;
+
+        $supervisor->scale(1);
+        $supervisor->loop();
+        usleep(100 * 1000);
+
+        $process = $supervisor->processes()->first();
+        app(WorkerStateRepository::class)->put($this->workerState($supervisor->name, $process->pid, true));
+
         $supervisor->processPools[0]->markForTermination($process);
         $supervisor->terminatingProcesses();
 

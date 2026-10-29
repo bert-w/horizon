@@ -7,8 +7,10 @@ use Illuminate\Support\Facades\Redis;
 use Laravel\Horizon\Contracts\JobRepository;
 use Laravel\Horizon\Contracts\TagRepository;
 use Laravel\Horizon\Horizon;
+use Laravel\Horizon\RunningJob;
 use Laravel\Horizon\SupervisorCommandString;
 use Laravel\Horizon\WorkerCommandString;
+use Laravel\Horizon\WorkerState;
 use Orchestra\Testbench\TestCase;
 
 abstract class IntegrationTest extends TestCase
@@ -112,6 +114,25 @@ abstract class IntegrationTest extends TestCase
             $options->sleep = 0;
             $options->maxTries = 1;
         });
+    }
+
+    /**
+     * Make the state of a worker, running a job with the given deadline when busy.
+     */
+    protected function workerState(string $supervisor, int $pid, bool $busy = false, ?int $deadline = null): WorkerState
+    {
+        return new WorkerState(
+            pid: $pid,
+            supervisor: $supervisor,
+            connection: 'redis',
+            queue: 'default',
+            memory: 0,
+            startedAt: 0,
+            updatedAt: 0,
+            job: $busy
+                ? new RunningJob(1, null, 'Job', 'default', 1, 0, $deadline ? 60 : 0, $deadline)
+                : null,
+        );
     }
 
     /**

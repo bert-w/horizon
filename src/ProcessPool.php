@@ -183,7 +183,7 @@ class ProcessPool implements Countable
 
         return new WorkerProcess($class::fromShellCommandline(
             $this->options->toWorkerCommand(), $this->options->directory
-        )->setTimeout(null)->disableOutput());
+        )->setTimeout(null)->disableOutput(), $this->options->name);
     }
 
     /**
@@ -255,9 +255,12 @@ class ProcessPool implements Countable
     {
         $this->stopTerminatingProcessesThatAreHanging();
 
-        $this->terminatingProcesses = collect($this->terminatingProcesses)
-            ->filter(fn ($process) => $process['process']->isRunning())
-            ->all();
+        [$running, $exited] = collect($this->terminatingProcesses)
+            ->partition(fn ($process) => $process['process']->isRunning());
+
+        $exited->each(fn ($process) => $process['process']->forgetState());
+
+        $this->terminatingProcesses = $running->all();
     }
 
     /**
@@ -268,12 +271,28 @@ class ProcessPool implements Countable
     protected function stopTerminatingProcessesThatAreHanging()
     {
         foreach ($this->terminatingProcesses as $process) {
-            $timeout = $this->options->timeout;
-
-            if ($process['terminatedAt']->addSeconds((int) $timeout)->lte(CarbonImmutable::now())) {
+            if ($this->hangingAfter($process)->lte(CarbonImmutable::now())) {
                 $process['process']->stop();
             }
         }
+    }
+
+    /**
+     * Get the time after which the given terminating process is hanging.
+     *
+     * A worker busy with a job may finish it until that job times out. The supervisor
+     * timeout only applies when the worker is idle, its job has no timeout, or its
+     * state is unknown.
+     *
+     * @param  array{process: \Laravel\Horizon\WorkerProcess, terminatedAt: \Carbon\CarbonImmutable}  $process
+     */
+    protected function hangingAfter(array $process): CarbonImmutable
+    {
+        $deadline = $process['process']->state()?->job?->deadline;
+
+        return $deadline
+            ? CarbonImmutable::createFromTimestamp($deadline)
+            : $process['terminatedAt']->addSeconds((int) $this->options->timeout);
     }
 
     /**

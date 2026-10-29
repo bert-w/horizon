@@ -4,6 +4,7 @@ namespace Laravel\Horizon;
 
 use Carbon\CarbonImmutable;
 use Closure;
+use Laravel\Horizon\Contracts\WorkerStateRepository;
 use Laravel\Horizon\Events\UnableToLaunchProcess;
 use Laravel\Horizon\Events\WorkerProcessRestarting;
 use Symfony\Component\Process\Exception\ExceptionInterface;
@@ -32,14 +33,25 @@ class WorkerProcess
     public $restartAgainAt;
 
     /**
+     * The process ID of the worker, kept after it exits so its state can be cleaned up.
+     */
+    public ?int $pid = null;
+
+    /**
+     * The name of the supervisor the worker belongs to.
+     */
+    public ?string $supervisor = null;
+
+    /**
      * Create a new worker process instance.
      *
      * @param  \Symfony\Component\Process\Process  $process
      * @return void
      */
-    public function __construct($process)
+    public function __construct($process, ?string $supervisor = null)
     {
         $this->process = $process;
+        $this->supervisor = $supervisor;
     }
 
     /**
@@ -55,6 +67,8 @@ class WorkerProcess
         $this->cooldown();
 
         $this->process->start($callback);
+
+        $this->pid = $this->process->getPid();
 
         return $this;
     }
@@ -104,7 +118,30 @@ class WorkerProcess
             event(new WorkerProcessRestarting($this));
         }
 
+        // A worker that crashed or was killed could not remove its own state...
+        $this->forgetState();
+
         $this->start($this->output);
+    }
+
+    /**
+     * Get the state the worker last recorded.
+     */
+    public function state(): ?WorkerState
+    {
+        return $this->supervisor && $this->pid
+            ? app(WorkerStateRepository::class)->find($this->supervisor, $this->pid)
+            : null;
+    }
+
+    /**
+     * Remove the state the worker left behind.
+     */
+    public function forgetState(): void
+    {
+        if ($this->supervisor && $this->pid) {
+            app(WorkerStateRepository::class)->forget($this->supervisor, $this->pid);
+        }
     }
 
     /**
